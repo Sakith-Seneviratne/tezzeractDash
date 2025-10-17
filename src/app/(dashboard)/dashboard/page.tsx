@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  TrendingUp, 
   Users, 
   Eye, 
   MousePointer,
@@ -18,7 +17,30 @@ import { PlatformCard } from '@/components/dashboard/platform-card';
 import { AIInsights } from '@/components/dashboard/ai-insights';
 import { LineChartComponent } from '@/components/charts/line-chart';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { useLLM } from '@/hooks/use-llm';
+
+interface ChartDataPoint {
+  [key: string]: string | number;
+  date: string;
+  value: number;
+  impressions: number;
+  engagement: number;
+  clicks: number;
+}
+
+interface PlatformChartData {
+  [key: string]: string | number;
+  name: string;
+  value: number;
+}
+
+interface AIInsight {
+  summary: string;
+  recommendations: string[];
+  performance: {
+    bestPerforming: string;
+    needsImprovement: string;
+  };
+}
 
 const timeRanges: TimeRange[] = [
   { label: 'Today', value: 'today', startDate: new Date(), endDate: new Date() },
@@ -38,135 +60,356 @@ export default function DashboardPage() {
     followers: 0,
   });
   const [platformMetrics, setPlatformMetrics] = useState<PlatformMetrics[]>([]);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [platformChartData, setPlatformChartData] = useState<any[]>([]);
-  const [aiInsights, setAiInsights] = useState<any>(null);
-  const [, setLoading] = useState(true);
-  const { generateInsights, loading: llmLoading } = useLLM();
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [platformChartData, setPlatformChartData] = useState<PlatformChartData[]>([]);
+  const [aiInsights, setAiInsights] = useState<AIInsight | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Load mock data on mount and when time range changes
   useEffect(() => {
-    // Mock data for now - will be replaced with real data fetching
+    setLoading(true);
+    setAiInsights(null); // Reset insights when time range changes
+    
+    // Check if Twitter/X is connected
+    const fetchTwitterData = async () => {
+      try {
+        const twitterTokens = localStorage.getItem('twitter_tokens');
+        if (twitterTokens) {
+          const tokens = JSON.parse(twitterTokens);
+          const response = await fetch(`/api/integrations/twitter/data?access_token=${tokens.access_token}&date_range=${selectedTimeRange}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            return data.metrics;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching Twitter data:', error);
+      }
+      return null;
+    };
+
+    // Check if Google Analytics is connected
+    const fetchGoogleAnalyticsData = async () => {
+      try {
+        const googleTokens = localStorage.getItem('google_tokens');
+        if (googleTokens) {
+          const tokens = JSON.parse(googleTokens);
+          // Include property ID if it was selected
+          const propertyParam = tokens.propertyId ? `&property_id=${tokens.propertyId}` : '';
+          const response = await fetch(`/api/integrations/google-analytics/data?access_token=${tokens.access_token}${propertyParam}&date_range=${selectedTimeRange}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            return data.metrics;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching Google Analytics data:', error);
+      }
+      return null;
+    };
+
+    // Check if Meta (Facebook & Instagram) is connected
+    const fetchMetaData = async () => {
+      try {
+        const metaTokens = localStorage.getItem('meta_tokens');
+        if (metaTokens) {
+          const tokens = JSON.parse(metaTokens);
+          const response = await fetch(`/api/integrations/meta/data?access_token=${tokens.access_token}&date_range=${selectedTimeRange}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            return data.metrics;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching Meta data:', error);
+      }
+      return null;
+    };
+    
+    // Initialize with zero values - will be populated with real data
     const mockMetrics: DashboardMetrics = {
-      impressions: 125000,
-      reach: 45000,
-      engagement: 3200,
-      clicks: 850,
-      conversions: 45,
-      followers: 12500,
+      impressions: 0,
+      reach: 0,
+      engagement: 0,
+      clicks: 0,
+      conversions: 0,
+      followers: 0,
     };
 
     const mockPlatformMetrics: PlatformMetrics[] = [
       {
         platform: 'facebook' as PlatformType,
         metrics: {
-          impressions: 45000,
-          reach: 18000,
-          engagement: 1200,
-          clicks: 300,
-          conversions: 15,
-          followers: 5000,
+          impressions: 0,
+          reach: 0,
+          engagement: 0,
+          clicks: 0,
+          conversions: 0,
+          followers: 0,
         },
-        change: 12.5,
-        trend: 'up',
+        change: 0,
+        trend: 'stable',
       },
       {
         platform: 'instagram' as PlatformType,
         metrics: {
-          impressions: 35000,
-          reach: 15000,
-          engagement: 1800,
-          clicks: 250,
-          conversions: 20,
-          followers: 4000,
+          impressions: 0,
+          reach: 0,
+          engagement: 0,
+          clicks: 0,
+          conversions: 0,
+          followers: 0,
         },
-        change: 8.2,
-        trend: 'up',
+        change: 0,
+        trend: 'stable',
       },
       {
-        platform: 'linkedin' as PlatformType,
+        platform: 'twitter' as PlatformType,
         metrics: {
-          impressions: 25000,
-          reach: 8000,
-          engagement: 800,
-          clicks: 200,
-          conversions: 8,
-          followers: 2500,
+          impressions: 0,
+          reach: 0,
+          engagement: 0,
+          clicks: 0,
+          conversions: 0,
+          followers: 0,
         },
-        change: 15.3,
-        trend: 'up',
+        change: 0,
+        trend: 'stable',
       },
       {
         platform: 'google_analytics' as PlatformType,
         metrics: {
-          impressions: 20000,
-          reach: 4000,
-          engagement: 400,
-          clicks: 100,
-          conversions: 2,
-          followers: 1000,
+          impressions: 0,
+          reach: 0,
+          engagement: 0,
+          clicks: 0,
+          conversions: 0,
+          followers: 0,
         },
-        change: -2.1,
-        trend: 'down',
+        change: 0,
+        trend: 'stable',
       },
     ];
 
-    // Generate chart data for the last 30 days
-    const generateChartData = () => {
-      const data = [];
-      for (let i = 29; i >= 0; i--) {
+    // Generate chart data based on selected date range
+    const generateChartData = (): ChartDataPoint[] => {
+      const data: ChartDataPoint[] = [];
+      // Determine number of days based on selected range
+      let days = 30;
+      if (selectedTimeRange === '7d') days = 7;
+      else if (selectedTimeRange === '30d') days = 30;
+      else if (selectedTimeRange === '90d') days = 90;
+      else if (selectedTimeRange === 'today') days = 1;
+      
+      for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         data.push({
           date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          impressions: Math.floor(Math.random() * 5000) + 2000,
-          engagement: Math.floor(Math.random() * 200) + 50,
-          clicks: Math.floor(Math.random() * 50) + 10,
+          value: 0,
+          impressions: 0,
+          engagement: 0,
+          clicks: 0,
         });
       }
       return data;
     };
 
-    const generatePlatformData = () => {
+    const generatePlatformData = (): PlatformChartData[] => {
       return [
-        { name: 'Facebook', value: 45000 },
-        { name: 'Instagram', value: 35000 },
-        { name: 'LinkedIn', value: 25000 },
-        { name: 'Google Analytics', value: 20000 },
+        { name: 'Facebook', value: 0 },
+        { name: 'Instagram', value: 0 },
+        { name: 'Twitter/X', value: 0 },
+        { name: 'Google Analytics', value: 0 },
       ];
     };
     
-    setTimeout(async () => {
+    const timer = setTimeout(async () => {
+      // Fetch real data from connected platforms
+      const twitterData = await fetchTwitterData();
+      const googleData = await fetchGoogleAnalyticsData();
+      const metaData = await fetchMetaData();
+      
+      let totalImpressions = 0;
+      let totalReach = 0;
+      let totalEngagement = 0;
+      let totalClicks = 0;
+      let totalConversions = 0;
+      let totalFollowers = 0;
+      
+      if (twitterData) {
+        // Update Twitter platform metrics with real data
+        const twitterPlatform = mockPlatformMetrics.find(p => p.platform === 'twitter');
+        if (twitterPlatform) {
+          twitterPlatform.metrics = twitterData;
+          twitterPlatform.change = 0; // Set to 0 since we don't have historical data yet
+          twitterPlatform.trend = 'stable';
+        }
+        
+        totalImpressions += twitterData.impressions;
+        totalReach += twitterData.reach;
+        totalEngagement += twitterData.engagement;
+        totalClicks += twitterData.clicks;
+        totalConversions += twitterData.conversions;
+        totalFollowers += twitterData.followers;
+      }
+      
+      if (googleData) {
+        // Update Google Analytics platform metrics with real data
+        const googlePlatform = mockPlatformMetrics.find(p => p.platform === 'google_analytics');
+        if (googlePlatform) {
+          googlePlatform.metrics = googleData;
+          googlePlatform.change = 0; // Set to 0 since we don't have historical data yet
+          googlePlatform.trend = 'stable';
+        }
+        
+        totalImpressions += googleData.impressions;
+        totalReach += googleData.reach;
+        totalEngagement += googleData.engagement;
+        totalClicks += googleData.clicks;
+        totalConversions += googleData.conversions;
+      }
+
+      if (metaData) {
+        // Update Facebook platform metrics with real data
+        const facebookPlatform = mockPlatformMetrics.find(p => p.platform === 'facebook');
+        if (facebookPlatform) {
+          facebookPlatform.metrics = metaData;
+          facebookPlatform.change = 0; // Set to 0 since we don't have historical data yet
+          facebookPlatform.trend = 'stable';
+        }
+        
+        totalImpressions += metaData.impressions;
+        totalReach += metaData.reach;
+        totalEngagement += metaData.engagement;
+        totalClicks += metaData.clicks;
+        totalConversions += metaData.conversions;
+        totalFollowers += metaData.followers;
+      }
+      
+      // Update overall metrics with real data
+      if (twitterData || googleData || metaData) {
+        mockMetrics.impressions = totalImpressions;
+        mockMetrics.reach = totalReach;
+        mockMetrics.engagement = totalEngagement;
+        mockMetrics.clicks = totalClicks;
+        mockMetrics.conversions = totalConversions;
+        mockMetrics.followers = totalFollowers;
+      }
+      
       setMetrics(mockMetrics);
       setPlatformMetrics(mockPlatformMetrics);
       setChartData(generateChartData());
       setPlatformChartData(generatePlatformData());
+      setLoading(false);
       
-      // Generate AI insights
-      const insights = await generateInsights(mockMetrics, mockPlatformMetrics);
-      if (insights) {
-        setAiInsights(insights);
-      } else {
-        // Fallback to mock insights if LLM fails
-        setAiInsights({
-          summary: "Your social media performance has shown strong growth this month, with a 15.3% increase in overall engagement. Video content on Instagram is driving the highest engagement rates, while LinkedIn posts are generating quality B2B leads.",
-          recommendations: [
-            "Post 3 more video content pieces this week to capitalize on Instagram's algorithm",
-            "Focus on LinkedIn for B2B engagement - your posts there have 15.3% higher engagement",
-            "Optimize posting times for 2-4 PM when your audience is most active",
-            "Create more carousel posts on Instagram as they perform 40% better than single images",
-            "Consider running a LinkedIn campaign to boost your B2B reach"
-          ],
-          performance: {
-            bestPerforming: "Instagram Video Content",
-            needsImprovement: "Google Analytics Traffic"
-          }
-        });
+      // Show AI insights with real data
+      // Get readable time period text
+      const timePeriodText = selectedTimeRange === 'today' ? 'today' : 
+                            selectedTimeRange === '7d' ? 'the last 7 days' :
+                            selectedTimeRange === '30d' ? 'the last 30 days' :
+                            selectedTimeRange === '90d' ? 'the last 90 days' : 'the selected period';
+      
+      let summary = "Connect your social media platforms and Google Analytics to see personalized insights and recommendations.";
+      let recommendations: string[] = [
+        "Connect Twitter/X to track your social media performance",
+        "Connect Google Analytics to monitor website traffic and conversions",
+        "Set up Facebook & Instagram to track social media engagement",
+        "Once connected, you'll receive AI-powered recommendations based on your real data"
+      ];
+      
+      if (twitterData && googleData && metaData) {
+        summary = `Your connected platforms show strong performance: Twitter/X has ${twitterData.impressions.toLocaleString()} impressions, Facebook & Instagram have ${metaData.impressions.toLocaleString()} impressions with ${metaData.engagement.toLocaleString()} engagements, while your website (Google Analytics) recorded ${googleData.sessions?.toLocaleString() || googleData.impressions.toLocaleString()} sessions with ${googleData.conversions.toLocaleString()} conversions over ${timePeriodText}.`;
+        recommendations = [
+          `Your website has ${googleData.conversions} conversions - optimize landing pages to increase conversion rate`,
+          `Facebook & Instagram engagement is strong at ${metaData.engagement.toLocaleString()} - maintain posting consistency`,
+          `Twitter/X has ${twitterData.followers.toLocaleString()} followers - engage with them regularly to build community`,
+          `Meta platforms have ${metaData.followers.toLocaleString()} total followers - create engaging content to grow this audience`,
+          "Consider cross-promoting your website content across all platforms to drive more traffic"
+        ];
+      } else if (twitterData && googleData) {
+        summary = `Your connected platforms show strong performance: Twitter/X has ${twitterData.impressions.toLocaleString()} impressions with ${twitterData.engagement.toLocaleString()} engagements, while your website (Google Analytics) recorded ${googleData.sessions?.toLocaleString() || googleData.impressions.toLocaleString()} sessions with ${googleData.conversions.toLocaleString()} conversions over ${timePeriodText}.`;
+        recommendations = [
+          `Your website has ${googleData.conversions} conversions - optimize landing pages to increase conversion rate`,
+          `Twitter/X engagement is strong at ${twitterData.engagement.toLocaleString()} - maintain posting consistency`,
+          `Website traffic shows ${googleData.users?.toLocaleString() || googleData.reach.toLocaleString()} users - focus on SEO to grow organic reach`,
+          `Twitter/X has ${twitterData.followers.toLocaleString()} followers - engage with them regularly to build community`,
+          "Connect Facebook & Instagram to expand your social media reach"
+        ];
+      } else if (twitterData && metaData) {
+        summary = `Your social media platforms show strong performance: Twitter/X has ${twitterData.impressions.toLocaleString()} impressions with ${twitterData.engagement.toLocaleString()} engagements, while Facebook & Instagram have ${metaData.impressions.toLocaleString()} impressions with ${metaData.engagement.toLocaleString()} engagements over ${timePeriodText}.`;
+        recommendations = [
+          `Twitter/X engagement is strong at ${twitterData.engagement.toLocaleString()} - maintain posting consistency`,
+          `Facebook & Instagram engagement is at ${metaData.engagement.toLocaleString()} - create more video content to boost this`,
+          `Twitter/X has ${twitterData.followers.toLocaleString()} followers - engage with them regularly to build community`,
+          `Meta platforms have ${metaData.followers.toLocaleString()} total followers - create engaging content to grow this audience`,
+          "Connect Google Analytics to track how social media drives traffic to your website"
+        ];
+      } else if (googleData && metaData) {
+        summary = `Your website and social media show strong performance: Facebook & Instagram have ${metaData.impressions.toLocaleString()} impressions with ${metaData.engagement.toLocaleString()} engagements, while your website (Google Analytics) recorded ${googleData.sessions?.toLocaleString() || googleData.impressions.toLocaleString()} sessions with ${googleData.conversions.toLocaleString()} conversions over ${timePeriodText}.`;
+        recommendations = [
+          `Your website has ${googleData.conversions} conversions - optimize landing pages to increase conversion rate`,
+          `Facebook & Instagram engagement is strong at ${metaData.engagement.toLocaleString()} - maintain posting consistency`,
+          `Website traffic shows ${googleData.users?.toLocaleString() || googleData.reach.toLocaleString()} users - focus on SEO to grow organic reach`,
+          `Meta platforms have ${metaData.followers.toLocaleString()} total followers - create engaging content to grow this audience`,
+          "Connect Twitter/X to add micro-blogging to your social media strategy"
+        ];
+      } else if (twitterData) {
+        summary = `Your Twitter/X account shows ${twitterData.impressions.toLocaleString()} impressions and ${twitterData.engagement.toLocaleString()} engagements over ${timePeriodText}. ${twitterData.followers.toLocaleString()} followers are actively engaging with your content.`;
+        recommendations = [
+          `Twitter/X engagement is strong at ${twitterData.engagement.toLocaleString()} - maintain posting consistency`,
+          `You have ${twitterData.followers.toLocaleString()} followers - engage with them regularly to build community`,
+          `${twitterData.clicks.toLocaleString()} clicks show interest - consider adding clear CTAs to your posts`,
+          "Connect Google Analytics to track how Twitter/X drives traffic to your website",
+          "Connect Facebook & Instagram to expand your social media reach"
+        ];
+      } else if (googleData) {
+        summary = `Your website analytics show ${googleData.sessions?.toLocaleString() || googleData.impressions.toLocaleString()} sessions, ${googleData.users?.toLocaleString() || googleData.reach.toLocaleString()} users, and ${googleData.conversions.toLocaleString()} conversions over ${timePeriodText}.`;
+        recommendations = [
+          `Your website has ${googleData.conversions} conversions - optimize landing pages to increase this metric`,
+          `Website traffic shows ${googleData.users?.toLocaleString() || googleData.reach.toLocaleString()} users - focus on SEO to grow organic reach`,
+          `${googleData.engagement.toLocaleString()} engaged sessions indicate quality traffic - keep creating valuable content`,
+          "Connect Twitter/X to drive social media traffic to your website",
+          "Connect Facebook & Instagram to expand your social media reach"
+        ];
+      } else if (metaData) {
+        summary = `Your Facebook & Instagram accounts show ${metaData.impressions.toLocaleString()} impressions and ${metaData.engagement.toLocaleString()} engagements over ${timePeriodText}. ${metaData.followers.toLocaleString()} followers are actively engaging with your content.`;
+        recommendations = [
+          `Facebook & Instagram engagement is strong at ${metaData.engagement.toLocaleString()} - maintain posting consistency`,
+          `You have ${metaData.followers.toLocaleString()} total followers - create engaging content to grow this audience`,
+          `${metaData.clicks.toLocaleString()} clicks show interest - consider adding clear CTAs to your posts`,
+          "Connect Twitter/X to add micro-blogging to your social media strategy",
+          "Connect Google Analytics to track how social media drives traffic to your website"
+        ];
       }
       
-      setLoading(false);
+      setAiInsights({
+        summary,
+        recommendations,
+        performance: {
+          bestPerforming: twitterData ? "Twitter/X Social Media" : (metaData ? "Facebook & Instagram" : (googleData ? "Website Traffic" : "Not enough data yet")),
+          needsImprovement: !googleData ? "Website Analytics - Connect Google Analytics" : (!metaData ? "Social Media - Connect Facebook & Instagram" : "Twitter/X - Connect for Micro-blogging")
+        }
+      });
     }, 1000);
-  }, [selectedTimeRange, generateInsights]);
 
+    return () => clearTimeout(timer);
+  }, [selectedTimeRange]);
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -250,7 +493,10 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>Performance Trends</CardTitle>
               <CardDescription>
-                Daily metrics over the last 30 days
+                Daily metrics over {selectedTimeRange === 'today' ? 'today' : 
+                                  selectedTimeRange === '7d' ? 'the last 7 days' :
+                                  selectedTimeRange === '30d' ? 'the last 30 days' :
+                                  selectedTimeRange === '90d' ? 'the last 90 days' : 'the selected period'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -293,11 +539,8 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="text-center">
-                  {llmLoading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  ) : (
-                    <p className="text-muted-foreground">Loading AI insights...</p>
-                  )}
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading AI insights...</p>
                 </div>
               </CardContent>
             </Card>

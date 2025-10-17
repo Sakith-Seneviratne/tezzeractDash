@@ -5,402 +5,261 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Target, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Calendar,
-  TrendingUp
-} from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { createClient } from '@/lib/supabase/client';
+import { Plus, Trash2, Target } from 'lucide-react';
 
 interface Objective {
   id: string;
-  type: 'monthly' | 'quarterly' | 'yearly';
+  type: string;
   description: string;
-  target_metrics: Record<string, number>;
+  target_impressions: number;
+  target_reach: number;
   start_date: string;
   end_date: string;
-  created_at: string;
 }
+
+const Select = ({ value, onChange, children, ...props }: any) => (
+  <select
+    value={value}
+    onChange={onChange}
+    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    {...props}
+  >
+    {children}
+  </select>
+);
 
 export function ObjectivesManager() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingObjective, setEditingObjective] = useState<Objective | null>(null);
-  const [loading, setLoading] = useState(false);
-  const { selectedOrganization } = useAuth();
-  const supabase = createClient();
-
-  const [formData, setFormData] = useState({
-    type: 'monthly' as 'monthly' | 'quarterly' | 'yearly',
+  const [newObjective, setNewObjective] = useState<Partial<Objective>>({
+    type: '',
     description: '',
-    target_metrics: {
-      impressions: 0,
-      reach: 0,
-      engagement: 0,
-      clicks: 0,
-      conversions: 0,
-    },
+    target_impressions: 0,
+    target_reach: 0,
     start_date: '',
-    end_date: '',
+    end_date: ''
   });
 
+  // Load objectives from localStorage on component mount
   useEffect(() => {
-    if (selectedOrganization) {
-      fetchObjectives();
-    }
-  }, [selectedOrganization]);
-
-  const fetchObjectives = async () => {
-    if (!selectedOrganization) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_objectives')
-        .select('*')
-        .eq('organization_id', selectedOrganization.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching objectives:', error);
-        return;
+    const savedObjectives = localStorage.getItem('organization_objectives');
+    if (savedObjectives) {
+      try {
+        setObjectives(JSON.parse(savedObjectives));
+      } catch (error) {
+        console.error('Error parsing saved objectives:', error);
       }
-
-      setObjectives(data || []);
-    } catch (error) {
-      console.error('Error fetching objectives:', error);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrganization) return;
+  // Save objectives to localStorage whenever objectives change
+  useEffect(() => {
+    localStorage.setItem('organization_objectives', JSON.stringify(objectives));
+  }, [objectives]);
 
-    setLoading(true);
-    try {
-      const objectiveData = {
-        organization_id: selectedOrganization.id,
-        type: formData.type,
-        description: formData.description,
-        target_metrics: formData.target_metrics,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-      };
-
-      if (editingObjective) {
-        // Update existing objective
-        const { error } = await supabase
-          .from('user_objectives')
-          .update(objectiveData)
-          .eq('id', editingObjective.id);
-
-        if (error) {
-          console.error('Error updating objective:', error);
-          return;
-        }
-      } else {
-        // Create new objective
-        const { error } = await supabase
-          .from('user_objectives')
-          .insert(objectiveData);
-
-        if (error) {
-          console.error('Error creating objective:', error);
-          return;
-        }
-      }
-
-      await fetchObjectives();
-      resetForm();
-    } catch (error) {
-      console.error('Error saving objective:', error);
-    } finally {
-      setLoading(false);
+  const addObjective = () => {
+    if (!newObjective.type || !newObjective.description) {
+      alert('Please fill in type and description');
+      return;
     }
-  };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this objective?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_objectives')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting objective:', error);
-        return;
-      }
-
-      await fetchObjectives();
-    } catch (error) {
-      console.error('Error deleting objective:', error);
-    }
-  };
-
-  const handleEdit = (objective: Objective) => {
-    setEditingObjective(objective);
-    setFormData({
-      type: objective.type,
-      description: objective.description,
-      target_metrics: objective.target_metrics,
-      start_date: objective.start_date,
-      end_date: objective.end_date,
-    });
-    setShowForm(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      type: 'monthly',
-      description: '',
-      target_metrics: {
-        impressions: 0,
-        reach: 0,
-        engagement: 0,
-        clicks: 0,
-        conversions: 0,
-      },
-      start_date: '',
-      end_date: '',
-    });
-    setEditingObjective(null);
-    setShowForm(false);
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors = {
-      monthly: 'bg-blue-100 text-blue-800',
-      quarterly: 'bg-green-100 text-green-800',
-      yearly: 'bg-purple-100 text-purple-800',
+    const objective: Objective = {
+      id: Date.now().toString(),
+      type: newObjective.type!,
+      description: newObjective.description!,
+      target_impressions: newObjective.target_impressions || 0,
+      target_reach: newObjective.target_reach || 0,
+      start_date: newObjective.start_date || '',
+      end_date: newObjective.end_date || ''
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+
+    setObjectives([...objectives, objective]);
+    
+    // Reset form
+    setNewObjective({
+      type: '',
+      description: '',
+      target_impressions: 0,
+      target_reach: 0,
+      start_date: '',
+      end_date: ''
+    });
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'monthly':
-        return <Calendar className="h-4 w-4" />;
-      case 'quarterly':
-        return <TrendingUp className="h-4 w-4" />;
-      case 'yearly':
-        return <Target className="h-4 w-4" />;
-      default:
-        return <Target className="h-4 w-4" />;
-    }
+  const removeObjective = (id: string) => {
+    setObjectives(objectives.filter(obj => obj.id !== id));
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <Target className="h-5 w-5" />
-              <span>Objectives</span>
-            </CardTitle>
-            <CardDescription>
-              Set your monthly, quarterly, and yearly goals
-            </CardDescription>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold">Business Objectives</h2>
+        <p className="text-muted-foreground">
+          Set your business goals and targets for content performance
+        </p>
+      </div>
+
+      {/* Add New Objective Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Target className="h-5 w-5" />
+            <span>Add New Objective</span>
+          </CardTitle>
+          <CardDescription>
+            Define your business objectives with specific targets
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="objective-type">Objective Type *</Label>
+              <Select
+                id="objective-type"
+                value={newObjective.type}
+                onChange={(e) => setNewObjective({ ...newObjective, type: e.target.value })}
+              >
+                <option value="">Select objective type</option>
+                <option value="brand_awareness">Brand Awareness</option>
+                <option value="engagement">Engagement</option>
+                <option value="lead_generation">Lead Generation</option>
+                <option value="sales">Sales</option>
+                <option value="traffic">Website Traffic</option>
+                <option value="community_building">Community Building</option>
+                <option value="product_launch">Product Launch</option>
+                <option value="event_promotion">Event Promotion</option>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="objective-description">Description *</Label>
+              <Input
+                id="objective-description"
+                placeholder="Describe your objective..."
+                value={newObjective.description}
+                onChange={(e) => setNewObjective({ ...newObjective, description: e.target.value })}
+              />
+            </div>
           </div>
-          <Button onClick={() => setShowForm(true)}>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="target-impressions">Target Impressions</Label>
+              <Input
+                id="target-impressions"
+                type="number"
+                placeholder="10000"
+                value={newObjective.target_impressions}
+                onChange={(e) => setNewObjective({ ...newObjective, target_impressions: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="target-reach">Target Reach</Label>
+              <Input
+                id="target-reach"
+                type="number"
+                placeholder="5000"
+                value={newObjective.target_reach}
+                onChange={(e) => setNewObjective({ ...newObjective, target_reach: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={newObjective.start_date}
+                onChange={(e) => setNewObjective({ ...newObjective, start_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={newObjective.end_date}
+                onChange={(e) => setNewObjective({ ...newObjective, end_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <Button onClick={addObjective} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add Objective
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {showForm && (
-          <div className="mb-6 p-4 border rounded-lg bg-muted/50">
-            <h3 className="font-medium mb-4">
-              {editingObjective ? 'Edit Objective' : 'Add New Objective'}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="type">Type</Label>
-                  <select
-                    id="type"
-                    value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      type: e.target.value as 'monthly' | 'quarterly' | 'yearly' 
-                    }))}
-                    className="w-full p-2 border rounded-md"
+        </CardContent>
+      </Card>
+
+      {/* Existing Objectives List */}
+      {objectives.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Objectives ({objectives.length})</CardTitle>
+            <CardDescription>
+              Your defined business objectives and targets
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {objectives.map((objective) => (
+                <div
+                  key={objective.id}
+                  className="flex items-center justify-between p-4 border rounded-lg bg-accent/50"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="font-medium capitalize">
+                        {objective.type.replace('_', ' ')}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {objective.start_date && objective.end_date 
+                          ? `${objective.start_date} - ${objective.end_date}`
+                          : 'No date range'
+                        }
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {objective.description}
+                    </p>
+                    <div className="flex space-x-4 text-xs text-muted-foreground">
+                      {objective.target_impressions > 0 && (
+                        <span>Target Impressions: {objective.target_impressions.toLocaleString()}</span>
+                      )}
+                      {objective.target_reach > 0 && (
+                        <span>Target Reach: {objective.target_reach.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeObjective(objective.id)}
+                    className="text-destructive hover:text-destructive"
                   >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="yearly">Yearly</option>
-                  </select>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="e.g., Increase brand awareness by 20%"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div>
-                  <Label htmlFor="impressions">Impressions</Label>
-                  <Input
-                    id="impressions"
-                    type="number"
-                    value={formData.target_metrics.impressions}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      target_metrics: { ...prev.target_metrics, impressions: parseInt(e.target.value) || 0 }
-                    }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="reach">Reach</Label>
-                  <Input
-                    id="reach"
-                    type="number"
-                    value={formData.target_metrics.reach}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      target_metrics: { ...prev.target_metrics, reach: parseInt(e.target.value) || 0 }
-                    }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="engagement">Engagement</Label>
-                  <Input
-                    id="engagement"
-                    type="number"
-                    value={formData.target_metrics.engagement}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      target_metrics: { ...prev.target_metrics, engagement: parseInt(e.target.value) || 0 }
-                    }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="clicks">Clicks</Label>
-                  <Input
-                    id="clicks"
-                    type="number"
-                    value={formData.target_metrics.clicks}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      target_metrics: { ...prev.target_metrics, clicks: parseInt(e.target.value) || 0 }
-                    }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="conversions">Conversions</Label>
-                  <Input
-                    id="conversions"
-                    type="number"
-                    value={formData.target_metrics.conversions}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      target_metrics: { ...prev.target_metrics, conversions: parseInt(e.target.value) || 0 }
-                    }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="start_date">Start Date</Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : (editingObjective ? 'Update' : 'Create')}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {objectives.length > 0 ? (
-            objectives.map((objective) => (
-              <div key={objective.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    {getTypeIcon(objective.type)}
-                    <div>
-                      <h4 className="font-medium">{objective.description}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(objective.start_date).toLocaleDateString()} - {new Date(objective.end_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getTypeColor(objective.type)}>
-                      {objective.type}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(objective)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(objective.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  {Object.entries(objective.target_metrics).map(([key, value]) => (
-                    <div key={key} className="text-center">
-                      <div className="font-medium">{value.toLocaleString()}</div>
-                      <div className="text-muted-foreground capitalize">{key}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No objectives set yet. Click "Add Objective" to get started.</p>
+              ))}
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {objectives.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Objectives Yet</h3>
+            <p className="text-muted-foreground">
+              Add your first business objective to get started with content planning
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

@@ -11,19 +11,19 @@
 
 @layer components {
   .gradient-primary {
-    @apply bg-gradient-to-br from-[#00378A] to-[#00A9EE] text-white;
+    @apply bg-gradient-to-br from-blue-800 to-blue-400 text-white;
   }
   
   .gradient-primary:hover {
-    @apply bg-gradient-to-br from-[#002A6B] to-[#0091D1];
+    @apply bg-gradient-to-br from-blue-900 to-blue-500;
   }
   
   .gradient-primary-hover {
-    @apply bg-gradient-to-br from-[#002A6B] to-[#0091D1];
+    @apply bg-gradient-to-br from-blue-900 to-blue-500;
   }
   
   .text-gradient {
-    @apply bg-gradient-to-r from-[#00378A] to-[#00A9EE] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-blue-800 to-blue-400 bg-clip-text text-transparent;
   }
 
   .card-hover {
@@ -31,28 +31,28 @@
   }
 
   .btn-gradient {
-    @apply gradient-primary font-medium px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-br from-blue-800 to-blue-400 font-medium px-4 py-2 rounded-lg text-white hover:shadow-lg transition-all duration-200;
   }
 
   .btn-outline-gradient {
     @apply border-2 border-transparent;
     background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, #00378A 0%, #00A9EE 100%) border-box;
-    color: #00378A;
+                linear-gradient(135deg, theme('colors.blue.800') 0%, theme('colors.blue.400') 100%) border-box;
+    color: theme('colors.blue.800');
   }
 
   .btn-outline-gradient:hover {
-    @apply gradient-primary text-white;
+    @apply bg-gradient-to-br from-blue-900 to-blue-500 text-white;
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2;
   }
 
   .gradient-border {
     @apply border border-transparent;
     background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, #00378A 0%, #00A9EE 100%) border-box;
+                linear-gradient(135deg, theme('colors.blue.800') 0%, theme('colors.blue.400') 100%) border-box;
   }
 }
 
@@ -67,12 +67,12 @@
   }
 
   .scrollbar-gradient::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #00378A 0%, #00A9EE 100%);
+    background: linear-gradient(135deg, theme('colors.blue.800') 0%, theme('colors.blue.400') 100%);
     border-radius: 3px;
   }
 
   .scrollbar-gradient::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #002A6B 0%, #0091D1 100%);
+    background: linear-gradient(135deg, theme('colors.blue.900') 0%, theme('colors.blue.500') 100%);
   }
 
   /* Smooth animations */

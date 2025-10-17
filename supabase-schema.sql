@@ -6,6 +6,10 @@ CREATE TABLE organizations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
+  type TEXT CHECK (type IN ('startup', 'small_business', 'medium_business', 'enterprise', 'non_profit', 'agency', 'freelancer', 'other')),
+  products_services TEXT,
+  objectives TEXT,
+  website_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   settings JSONB DEFAULT '{}'::jsonb
 );
@@ -138,6 +142,7 @@ CREATE TABLE integration_tokens (
 );
 
 -- Create indexes for better performance
+CREATE INDEX idx_organizations_type ON organizations(type);
 CREATE INDEX idx_organization_members_org_id ON organization_members(organization_id);
 CREATE INDEX idx_organization_members_user_id ON organization_members(user_id);
 CREATE INDEX idx_data_streams_org_id ON data_streams(organization_id);

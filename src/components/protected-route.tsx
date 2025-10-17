@@ -21,8 +21,8 @@ export function ProtectedRoute({ children, requireOrganization = true }: Protect
       }
 
       if (requireOrganization && !selectedOrganization) {
-        // If user has no organizations, redirect to setup or create organization
-        router.push('/setup');
+        // If user has no organizations, redirect to create organization
+        router.push('/setup/organization');
         return;
       }
     }

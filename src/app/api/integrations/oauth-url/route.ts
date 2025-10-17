@@ -4,7 +4,7 @@ import { IntegrationFactory } from '@/lib/integrations/integration-factory';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const platform = searchParams.get('platform') as 'facebook' | 'linkedin' | 'google_analytics';
+    const platform = searchParams.get('platform') as 'facebook' | 'twitter' | 'google_analytics';
 
     if (!platform) {
       return NextResponse.json(

@@ -6,6 +6,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  plugins: [],
   theme: {
     extend: {
       fontFamily: {
@@ -18,7 +19,7 @@ const config: Config = {
       colors: {
         // Add standard colors for compatibility
         white: '#ffffff',
-        black: '#000000',
+        black: '#ffffff',
         gray: {
           50: '#f9fafb',
           100: '#f3f4f6',
@@ -82,7 +83,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
 };
 
 export default config;

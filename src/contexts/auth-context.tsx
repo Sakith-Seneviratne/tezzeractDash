@@ -27,23 +27,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const userData: User = {
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name,
-          avatar_url: authUser.user_metadata?.avatar_url,
-          created_at: authUser.created_at,
-        };
-        setUser(userData);
-        await fetchOrganizations(userData.id);
-      } else {
+      try {
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          setUser(null);
+          setOrganizations([]);
+          setSelectedOrganization(null);
+          setLoading(false);
+          return;
+        }
+        
+        if (authUser) {
+          const userData: User = {
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name,
+            avatar_url: authUser.user_metadata?.avatar_url,
+            created_at: authUser.created_at,
+          };
+          setUser(userData);
+          await fetchOrganizations(userData.id);
+        } else {
+          setUser(null);
+          setOrganizations([]);
+          setSelectedOrganization(null);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('AuthContext: Unexpected error:', err);
         setUser(null);
         setOrganizations([]);
         setSelectedOrganization(null);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getUser();
@@ -88,7 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         `)
         .eq('user_id', userId);
 
-      if (data && !error) {
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        setOrganizations([]);
+        return;
+      }
+
+      if (data) {
         const orgs = data
           .map(item => item.organizations)
           .filter(Boolean)
@@ -107,9 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (orgs.length > 0 && !selectedOrganization) {
           setSelectedOrganization(orgs[0]);
         }
+      } else {
+        setOrganizations([]);
       }
     } catch (error) {
       console.error('Error fetching organizations:', error);
+      setOrganizations([]);
     }
   };
 

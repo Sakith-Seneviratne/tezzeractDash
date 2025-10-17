@@ -1,9 +1,8 @@
 import { BaseIntegration, IntegrationConfig } from './base-integration';
 import { MetaIntegration } from './meta-integration';
-import { LinkedInIntegration } from './linkedin-integration';
 import { GoogleAnalyticsIntegration } from './google-analytics-integration';
 
-export type PlatformType = 'facebook' | 'linkedin' | 'google_analytics';
+export type PlatformType = 'facebook' | 'twitter' | 'google_analytics';
 
 export class IntegrationFactory {
   static createIntegration(
@@ -14,8 +13,6 @@ export class IntegrationFactory {
     switch (platformType) {
       case 'facebook':
         return new MetaIntegration(organizationId, config);
-      case 'linkedin':
-        return new LinkedInIntegration(organizationId, config);
       case 'google_analytics':
         return new GoogleAnalyticsIntegration(organizationId, config);
       default:
@@ -37,10 +34,10 @@ export class IntegrationFactory {
         oauthUrl: this.getMetaOAuthUrl(),
       },
       {
-        type: 'linkedin',
-        name: 'LinkedIn',
-        description: 'Connect your LinkedIn company page',
-        oauthUrl: this.getLinkedInOAuthUrl(),
+        type: 'twitter',
+        name: 'Twitter/X',
+        description: 'Connect your Twitter/X account',
+        oauthUrl: this.getTwitterOAuthUrl(),
       },
       {
         type: 'google_analytics',
@@ -62,17 +59,50 @@ export class IntegrationFactory {
     return `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
   }
 
-  private static getLinkedInOAuthUrl(): string {
+  private static getTwitterOAuthUrl(): string {
+    // Generate code verifier and challenge for PKCE
+    const codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = this.generateCodeChallengeSync(codeVerifier);
+    
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: process.env.LINKEDIN_CLIENT_ID!,
-      redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/linkedin/callback`,
-      scope: 'r_liteprofile r_emailaddress w_organization_social',
-      state: 'linkedin_oauth_state',
+      client_id: process.env.TWITTER_CLIENT_ID!,
+      redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/twitter/callback`,
+      scope: 'tweet.read users.read offline.access',
+      state: codeVerifier, // Store code_verifier in state
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
-    return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+    return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
   }
+
+  private static generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
+    if (typeof window !== 'undefined' && window.crypto) {
+      window.crypto.getRandomValues(array);
+    } else {
+      // Fallback for Node.js
+      const crypto = require('crypto');
+      const randomBytes = crypto.randomBytes(32);
+      array.set(randomBytes);
+    }
+    return btoa(String.fromCharCode.apply(null, Array.from(array)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+
+  private static generateCodeChallengeSync(verifier: string): string {
+    // Use Node.js crypto for server-side generation
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(verifier).digest();
+    return btoa(String.fromCharCode.apply(null, Array.from(hash)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+
 
   private static getGoogleAnalyticsOAuthUrl(): string {
     const params = new URLSearchParams({

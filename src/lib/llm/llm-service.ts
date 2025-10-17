@@ -34,6 +34,7 @@ export class LLMService {
     }
 
     if (process.env.GOOGLE_AI_API_KEY) {
+      console.log("Google AI API Key found.");
       this.providers.set('google', new GoogleProvider({
         apiKey: process.env.GOOGLE_AI_API_KEY,
         model: 'gemini-pro',

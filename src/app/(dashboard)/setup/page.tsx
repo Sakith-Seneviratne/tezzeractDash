@@ -1,19 +1,149 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { Plug, Target, Users, Upload, CheckCircle, AlertCircle, Facebook, Linkedin, BarChart3, DollarSign } from 'lucide-react';
+import { Plug, Target, Users, Upload, CheckCircle, AlertCircle, Facebook, Linkedin, BarChart3, DollarSign, Building2, Lightbulb } from 'lucide-react';
 import { PlatformConnectionCard } from '@/components/setup/platform-connection-card';
 import { ObjectivesManager } from '@/components/setup/objectives-manager';
 import { CompetitorManager } from '@/components/setup/competitor-manager';
 import { CsvUpload } from '@/components/setup/csv-upload';
-import { useAuth } from '@/contexts/auth-context';
+import { OrganizationForm } from '@/components/organization-form';
+import { ContentSuggestions } from '@/components/setup/content-suggestions';
 
 export default function SetupPage() {
   const [activeTab, setActiveTab] = useState('connections');
-  const { selectedOrganization } = useAuth();
+  const [twitterConnected, setTwitterConnected] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [showPropertySelector, setShowPropertySelector] = useState(false);
+  const [gaProperties, setGaProperties] = useState<Array<{propertyId: string; displayName: string; accountName: string}>>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [tempGoogleTokens, setTempGoogleTokens] = useState<{
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+    user_id?: string;
+    user_name?: string;
+    user_email?: string;
+  } | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Fetch Google Analytics properties
+  const fetchGoogleProperties = useCallback(async (accessToken: string) => {
+    try {
+      const response = await fetch(`/api/integrations/google-analytics/properties?access_token=${accessToken}`);
+      const data = await response.json();
+      
+      if (data.success && data.properties.length > 0) {
+        setGaProperties(data.properties);
+        setSelectedPropertyId(data.properties[0].propertyId); // Default to first property
+        setShowPropertySelector(true);
+      } else {
+        console.error('No properties found:', data.error);
+        // Still save the tokens even if no properties found
+        if (tempGoogleTokens) {
+          localStorage.setItem('google_tokens', JSON.stringify(tempGoogleTokens));
+          setGoogleConnected(true);
+        }
+        router.replace('/setup');
+      }
+    } catch (error) {
+      console.error('Failed to fetch GA properties:', error);
+      // Still save the tokens even if fetch fails
+      if (tempGoogleTokens) {
+        localStorage.setItem('google_tokens', JSON.stringify(tempGoogleTokens));
+        setGoogleConnected(true);
+      }
+      router.replace('/setup');
+    }
+  }, [tempGoogleTokens, router]);
+
+  // Check if platforms are already connected
+  useEffect(() => {
+    const twitterTokens = localStorage.getItem('twitter_tokens');
+    const googleTokens = localStorage.getItem('google_tokens');
+    const metaTokens = localStorage.getItem('meta_tokens');
+    
+    if (twitterTokens) {
+      setTwitterConnected(true);
+    }
+    if (googleTokens) {
+      setGoogleConnected(true);
+    }
+    if (metaTokens) {
+      setMetaConnected(true);
+    }
+  }, []);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const tokens = searchParams.get('tokens');
+    const error = searchParams.get('error');
+
+    if (success === 'twitter_connected' && tokens) {
+      try {
+        const decodedTokens = JSON.parse(decodeURIComponent(tokens));
+        localStorage.setItem('twitter_tokens', JSON.stringify(decodedTokens));
+        setTwitterConnected(true);
+        
+        // Clean up URL
+        router.replace('/setup');
+        
+        alert('Twitter/X connected successfully!');
+      } catch (err) {
+        console.error('Error parsing Twitter tokens:', err);
+      }
+    }
+
+    if (success === 'google_connected' && tokens) {
+      try {
+        const decodedTokens = JSON.parse(decodeURIComponent(tokens));
+        // Store tokens temporarily and fetch properties
+        setTempGoogleTokens(decodedTokens);
+        fetchGoogleProperties(decodedTokens.access_token);
+      } catch (err) {
+        console.error('Error parsing Google tokens:', err);
+      }
+    }
+
+    if (success === 'meta_connected' && tokens) {
+      try {
+        const decodedTokens = JSON.parse(decodeURIComponent(tokens));
+        localStorage.setItem('meta_tokens', JSON.stringify(decodedTokens));
+        setMetaConnected(true);
+        
+        // Clean up URL
+        router.replace('/setup');
+        
+        alert('Meta (Facebook & Instagram) connected successfully!');
+      } catch (err) {
+        console.error('Error parsing Meta tokens:', err);
+      }
+    }
+
+    if (error) {
+      alert(`Connection failed: ${error}`);
+      router.replace('/setup');
+    }
+  }, [searchParams, router, fetchGoogleProperties]);
+
+  // Handle property selection
+  const handlePropertySelection = () => {
+    if (tempGoogleTokens && selectedPropertyId) {
+      const tokensWithProperty = {
+        ...tempGoogleTokens,
+        propertyId: selectedPropertyId,
+      };
+      localStorage.setItem('google_tokens', JSON.stringify(tokensWithProperty));
+      setGoogleConnected(true);
+      setShowPropertySelector(false);
+      setTempGoogleTokens(null);
+      router.replace('/setup');
+    }
+  };
 
   const platforms = [
     {
@@ -22,17 +152,17 @@ export default function SetupPage() {
       description: 'Meta Business Suite',
       icon: Facebook,
       color: 'bg-blue-600',
-      connected: false,
-      status: 'pending' as const,
+      connected: metaConnected,
+      status: metaConnected ? ('active' as const) : ('pending' as const),
     },
     {
-      id: 'linkedin',
-      name: 'LinkedIn',
-      description: 'Company Page Analytics',
-      icon: Linkedin,
-      color: 'bg-blue-700',
-      connected: false,
-      status: 'pending' as const,
+      id: 'twitter',
+      name: 'Twitter/X',
+      description: 'Social Media Analytics',
+      icon: Linkedin, // We'll use the same icon for now, you can change this
+      color: 'bg-black',
+      connected: twitterConnected,
+      status: twitterConnected ? ('active' as const) : ('pending' as const),
     },
     {
       id: 'google_analytics',
@@ -40,8 +170,8 @@ export default function SetupPage() {
       description: 'Website Analytics',
       icon: BarChart3,
       color: 'bg-orange-600',
-      connected: false,
-      status: 'pending' as const,
+      connected: googleConnected,
+      status: googleConnected ? ('active' as const) : ('pending' as const),
     },
     {
       id: 'google_ads',
@@ -56,7 +186,9 @@ export default function SetupPage() {
 
   const tabs = [
     { id: 'connections', label: 'Platform Connections', icon: Plug },
+    { id: 'organization', label: 'Organization', icon: Building2 },
     { id: 'objectives', label: 'Objectives', icon: Target },
+    { id: 'suggestions', label: 'Content Suggestions', icon: Lightbulb },
     { id: 'competitors', label: 'Competitors', icon: Users },
     { id: 'csv', label: 'CSV Upload', icon: Upload },
   ];
@@ -79,8 +211,19 @@ export default function SetupPage() {
   };
 
   const handleDisconnect = (platformId: string) => {
-    console.log('Disconnecting from platform:', platformId);
-    // In a real app, this would revoke tokens
+    if (platformId === 'twitter') {
+      localStorage.removeItem('twitter_tokens');
+      setTwitterConnected(false);
+      alert('Twitter/X disconnected successfully!');
+    } else if (platformId === 'google_analytics') {
+      localStorage.removeItem('google_tokens');
+      setGoogleConnected(false);
+      alert('Google Analytics disconnected successfully!');
+    } else if (platformId === 'facebook') {
+      localStorage.removeItem('meta_tokens');
+      setMetaConnected(false);
+      alert('Meta (Facebook & Instagram) disconnected successfully!');
+    }
   };
 
   const handleTestConnection = (platformId: string) => {
@@ -157,8 +300,27 @@ export default function SetupPage() {
           </div>
         )}
 
+        {activeTab === 'organization' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold">Organization Setup</h2>
+              <p className="text-muted-foreground">
+                Create or configure your organization profile
+              </p>
+            </div>
+            
+            <div className="max-w-2xl">
+              <OrganizationForm />
+            </div>
+          </div>
+        )}
+
         {activeTab === 'objectives' && (
           <ObjectivesManager />
+        )}
+
+        {activeTab === 'suggestions' && (
+          <ContentSuggestions />
         )}
 
         {activeTab === 'competitors' && (
@@ -169,6 +331,65 @@ export default function SetupPage() {
           <CsvUpload />
         )}
       </div>
+
+      {/* Property Selector Modal */}
+      {showPropertySelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Select Google Analytics Property</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              You have multiple GA4 properties. Please select which one you want to use for analytics:
+            </p>
+            
+            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
+              {gaProperties.map((property) => (
+                <label
+                  key={property.propertyId}
+                  className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                >
+                  <input
+                    type="radio"
+                    name="property"
+                    value={property.propertyId}
+                    checked={selectedPropertyId === property.propertyId}
+                    onChange={(e) => setSelectedPropertyId(e.target.value)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{property.displayName}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Account: {property.accountName}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Property ID: {property.propertyId}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handlePropertySelection}
+                disabled={!selectedPropertyId}
+                className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Connect Selected Property
+              </button>
+              <button
+                onClick={() => {
+                  setShowPropertySelector(false);
+                  setTempGoogleTokens(null);
+                  router.replace('/setup');
+                }}
+                className="px-4 py-2 border rounded-lg hover:bg-accent transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

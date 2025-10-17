@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const { metrics, platformData, provider = 'openai' } = await request.json();
     
+    console.log("GOOGLE_AI_API_KEY in API route:", process.env.GOOGLE_AI_API_KEY);
+    
     if (!metrics || !platformData) {
       return NextResponse.json(
         { error: 'Missing required data' },
