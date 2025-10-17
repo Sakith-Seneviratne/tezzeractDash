@@ -7,18 +7,5 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-    "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
-    "NEXT_PUBLIC_LINKEDIN_CLIENT_ID": "@next_public_linkedin_client_id",
-    "NEXT_PUBLIC_META_APP_ID": "@next_public_meta_app_id",
-    "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "@next_public_google_client_id",
-    "TWITTER_CLIENT_ID": "@twitter_client_id",
-    "TWITTER_CLIENT_SECRET": "@twitter_client_secret",
-    "GOOGLE_CLIENT_SECRET": "@google_client_secret",
-    "META_APP_SECRET": "@meta_app_secret",
-    "GEMINI_API_KEY": "@gemini_api_key"
   }
 }

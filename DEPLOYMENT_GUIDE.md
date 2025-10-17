@@ -87,21 +87,33 @@ git push -u origin main
 
 ### 2.3 Add Environment Variables
 
-In Vercel dashboard, go to **Settings > Environment Variables** and add:
+**IMPORTANT**: Do NOT add environment variables in `vercel.json`. Instead, add them directly in the Vercel dashboard.
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `your_supabase_url` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `your_supabase_anon_key` | Your Supabase anon key |
-| `NEXT_PUBLIC_APP_URL` | `https://your-app-name.vercel.app` | Your Vercel app URL |
-| `NEXT_PUBLIC_LINKEDIN_CLIENT_ID` | `your_linkedin_client_id` | LinkedIn OAuth client ID |
-| `NEXT_PUBLIC_META_APP_ID` | `your_meta_app_id` | Meta app ID |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `your_google_client_id` | Google OAuth client ID |
-| `TWITTER_CLIENT_ID` | `your_twitter_client_id` | Twitter OAuth client ID |
-| `TWITTER_CLIENT_SECRET` | `your_twitter_secret` | Twitter OAuth secret |
-| `GOOGLE_CLIENT_SECRET` | `your_google_secret` | Google OAuth secret |
-| `META_APP_SECRET` | `your_meta_secret` | Meta app secret |
-| `GEMINI_API_KEY` | `your_gemini_api_key` | Google Gemini API key |
+In Vercel dashboard, go to **Settings > Environment Variables** and add each variable:
+
+| Variable Name | Value | Environment |
+|---------------|-------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `your_supabase_url` | Production, Preview, Development |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `your_supabase_anon_key` | Production, Preview, Development |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app-name.vercel.app` | Production, Preview, Development |
+| `NEXT_PUBLIC_LINKEDIN_CLIENT_ID` | `your_linkedin_client_id` | Production, Preview, Development |
+| `NEXT_PUBLIC_META_APP_ID` | `your_meta_app_id` | Production, Preview, Development |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | `your_google_client_id` | Production, Preview, Development |
+| `TWITTER_CLIENT_ID` | `your_twitter_client_id` | Production, Preview, Development |
+| `TWITTER_CLIENT_SECRET` | `your_twitter_secret` | Production, Preview, Development |
+| `GOOGLE_CLIENT_SECRET` | `your_google_secret` | Production, Preview, Development |
+| `META_APP_SECRET` | `your_meta_secret` | Production, Preview, Development |
+| `GEMINI_API_KEY` | `your_gemini_api_key` | Production, Preview, Development |
+
+**Steps to add variables:**
+1. Go to your project in Vercel dashboard
+2. Click **Settings** tab
+3. Click **Environment Variables** in the sidebar
+4. Click **Add New**
+5. Enter the variable name and value
+6. Select all environments (Production, Preview, Development)
+7. Click **Save**
+8. Repeat for each variable
 
 ## 🔧 Step 3: Configure OAuth Apps
 
@@ -178,22 +190,28 @@ After deployment, update all your OAuth applications with the new Vercel URL:
 
 ### Common Issues:
 
-1. **Build Failures:**
+1. **Environment Variable Error: "references Secret which does not exist"**
+   - **Problem**: `vercel.json` references secrets that don't exist
+   - **Solution**: Remove the `env` section from `vercel.json` and add variables directly in Vercel dashboard
+   - **Fix**: Use the updated `vercel.json` (without env section) and add variables in Settings > Environment Variables
+
+2. **Build Failures:**
    - Check Node.js version compatibility
    - Verify all dependencies are in `package.json`
    - Check for TypeScript errors
 
-2. **Environment Variables:**
-   - Ensure all required variables are set
+3. **Environment Variables:**
+   - Ensure all required variables are set in Vercel dashboard (not in vercel.json)
    - Check variable names match exactly
    - Verify no typos in values
+   - Make sure variables are enabled for all environments (Production, Preview, Development)
 
-3. **OAuth Issues:**
+4. **OAuth Issues:**
    - Verify redirect URIs are correct
    - Check client IDs and secrets
    - Ensure OAuth apps are properly configured
 
-4. **API Errors:**
+5. **API Errors:**
    - Check function logs in Vercel dashboard
    - Verify API keys are valid
    - Check rate limits

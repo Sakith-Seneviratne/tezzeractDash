@@ -42,7 +42,10 @@
 - [ ] Configure build settings (should auto-detect Next.js)
 
 ### 3. Environment Variables
-- [ ] Add all environment variables in Vercel dashboard
+- [ ] **IMPORTANT**: Add variables in Vercel dashboard (NOT in vercel.json)
+- [ ] Go to Settings > Environment Variables in Vercel dashboard
+- [ ] Add each variable individually
+- [ ] Enable for all environments (Production, Preview, Development)
 - [ ] Set `NEXT_PUBLIC_APP_URL` to your Vercel domain
 - [ ] Verify all variables are correctly set
 
