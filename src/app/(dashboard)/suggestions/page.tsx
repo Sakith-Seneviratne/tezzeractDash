@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Lightbulb, RefreshCw, Plus, Edit, Calendar, Save, X } from 'lucide-react';
 import { useLLM } from '@/hooks/use-llm';
 import { ContentSuggestion } from '@/lib/llm/types';
-import { useAuth } from '@/contexts/auth-context';
 
 export default function SuggestionsPage() {
   const [suggestions, setSuggestions] = useState<ContentSuggestion[]>([]);
@@ -17,7 +16,6 @@ export default function SuggestionsPage() {
   const [editingData, setEditingData] = useState<ContentSuggestion | null>(null);
   const [loading, setLoading] = useState(false);
   const { generateContentSuggestions, loading: llmLoading, error } = useLLM();
-  const { selectedOrganization } = useAuth();
 
   const handleGenerateSuggestions = async () => {
     setLoading(true);
@@ -111,10 +109,131 @@ export default function SuggestionsPage() {
     setEditingData(null);
   };
 
-  const handleAddToCalendar = (suggestion: ContentSuggestion) => {
-    // In a real app, this would add to the content calendar
-    console.log('Adding to calendar:', suggestion);
-    // You could show a toast notification here
+  const handleAddToCalendar = async (suggestion: ContentSuggestion) => {
+    try {
+      // Ensure date is in proper YYYY-MM-DD format
+      // Helper function to format date in local timezone (avoids timezone shift)
+      const formatDateLocal = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      let formattedDate = suggestion.postingDate;
+      if (!formattedDate || formattedDate === '') {
+        // If no date, use tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        formattedDate = formatDateLocal(tomorrow);
+      } else {
+        // Ensure it's in YYYY-MM-DD format
+        try {
+          const dateObj = new Date(formattedDate);
+          formattedDate = formatDateLocal(dateObj);
+        } catch {
+          formattedDate = formatDateLocal(new Date());
+        }
+      }
+
+      // Create calendar item from suggestion
+      const calendarItem = {
+        id: Date.now().toString(),
+        title: suggestion.title,
+        posting_date: formattedDate,
+        platform: suggestion.platform,
+        content_type: suggestion.contentType,
+        objective: suggestion.objective,
+        content_pillar: suggestion.contentPillar,
+        description: suggestion.description,
+        creative_guidance: suggestion.creativeGuidance,
+        caption: suggestion.caption,
+        hashtags: suggestion.hashtags,
+        attachments: [],
+        notes: '',
+        status: 'scheduled',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Get organization data
+      const organizationData = JSON.parse(localStorage.getItem('organization_data') || '{}');
+      
+      if (!organizationData.id) {
+        alert('⚠️ Please create an organization first at /setup/organization');
+        return;
+      }
+
+      // Save to database first (primary)
+      let savedItem = null;
+      try {
+        console.log('📤 Attempting to save to calendar database...');
+        console.log('Organization ID:', organizationData.id);
+        console.log('Calendar item:', calendarItem);
+        
+        const response = await fetch('/api/calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organization_id: organizationData.id,
+            title: calendarItem.title,
+            posting_date: calendarItem.posting_date,
+            platform: calendarItem.platform.toLowerCase(),
+            content_type: calendarItem.content_type,
+            objective: calendarItem.objective,
+            content_pillar: calendarItem.content_pillar,
+            description: calendarItem.description,
+            creative_guidance: calendarItem.creative_guidance,
+            caption: calendarItem.caption,
+            hashtags: calendarItem.hashtags || [],
+            attachments: [],
+            notes: '',
+            status: 'scheduled'
+          }),
+        });
+
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Database save failed!');
+          console.error('Status:', response.status);
+          console.error('Error:', errorData);
+          alert(`❌ FAILED TO SAVE TO DATABASE!\n\nError: ${errorData.error}\n\nCheck console for details.`);
+          throw new Error(errorData.error || 'Failed to save to database');
+        }
+
+        const { item } = await response.json();
+        savedItem = item;
+        console.log('✅ SUCCESS! Saved to calendar database!', item);
+        alert(`✅ SAVED TO DATABASE!\n\nID: ${item.id}\n\nCheck Supabase content_calendar table!`);
+        
+      } catch (dbError) {
+        console.error('❌ EXCEPTION during database save!');
+        console.error('Error object:', dbError);
+        console.error('Error message:', dbError instanceof Error ? dbError.message : String(dbError));
+        alert(`❌ EXCEPTION!\n\nError: ${dbError instanceof Error ? dbError.message : String(dbError)}\n\nSaved to localStorage only.\n\nCheck console for full error.`);
+        savedItem = calendarItem; // Use local item as fallback
+      }
+
+      // Update localStorage with database item or fallback
+      const existingCalendar = JSON.parse(localStorage.getItem('content_calendar') || '[]');
+      const updatedCalendar = [...existingCalendar, savedItem || calendarItem];
+      localStorage.setItem('content_calendar', JSON.stringify(updatedCalendar));
+
+      // Show final success message only if no error alert was shown
+      if (savedItem && savedItem.id) {
+        const displayDate = formattedDate.split('-').reverse().join('/');
+        console.log('✅ All done! Item is in localStorage and database.');
+      } else {
+        console.warn('⚠️ Item saved to localStorage only, not in database');
+      }
+      
+      console.log('Successfully added to calendar:', calendarItem);
+    } catch (error) {
+      console.error('Error adding to calendar:', error);
+      alert('❌ Failed to add to calendar. Please try again.');
+    }
   };
 
   const getPlatformColor = (platform: string) => {

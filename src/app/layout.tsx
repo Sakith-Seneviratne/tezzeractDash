@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/contexts/auth-context";
 
 const figtree = Figtree({ 
   subsets: ["latin"],
@@ -21,16 +20,38 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${figtree.variable} font-sans antialiased`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Remove browser extension attributes that cause hydration mismatches
+              (function() {
+                if (typeof window !== 'undefined') {
+                  const body = document.body;
+                  if (body) {
+                    // Remove attributes that start with __processed_
+                    const attributes = body.attributes;
+                    for (let i = attributes.length - 1; i >= 0; i--) {
+                      const attr = attributes[i];
+                      if (attr.name.startsWith('__processed_')) {
+                        body.removeAttribute(attr.name);
+                      }
+                    }
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${figtree.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

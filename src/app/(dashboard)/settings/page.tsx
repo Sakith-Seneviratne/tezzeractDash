@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Settings, User, Building2, Shield, Plug, Brain, Users } from 'lucide-react';
@@ -12,6 +12,11 @@ import { LLMSettings } from '@/components/settings/llm-settings';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('user');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const tabs = [
     { id: 'user', label: 'User Settings', icon: User },
@@ -20,6 +25,22 @@ export default function SettingsPage() {
     { id: 'integrations', label: 'Integrations', icon: Plug },
     { id: 'llm', label: 'AI Settings', icon: Brain },
   ];
+
+  if (!isHydrated) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your account, organization, and integrations
+          </p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

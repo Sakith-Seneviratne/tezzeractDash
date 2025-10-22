@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    let tweetMetrics = {
+    const tweetMetrics = {
       totalImpressions: 0,
       totalEngagement: 0,
       totalRetweets: 0,
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       const tweetsData = await tweetsResponse.json();
       const tweets = tweetsData.data || [];
 
-      tweets.forEach((tweet: any) => {
+      tweets.forEach((tweet: Record<string, unknown>) => {
         const tweetMetrics = tweet.public_metrics;
         tweetMetrics.totalImpressions += tweetMetrics.impression_count || 0;
         tweetMetrics.totalEngagement += (tweetMetrics.like_count || 0) + (tweetMetrics.retweet_count || 0) + (tweetMetrics.reply_count || 0);

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Create the integration instance
     const integrationInstance = IntegrationFactory.createIntegration(
-      integration.platform_type as any,
+      integration.platform_type as string,
       integration.organization_id,
       integration.config
     );

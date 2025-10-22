@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Organization ID</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ef4444;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        .info {
+            background: #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Organization ID</h1>
+        <p>This tool ensures your organization data has a unique ID for database operations.</p>
+        
+        <button onclick="checkOrganization()">Check Organization Data</button>
+        <button onclick="addOrganizationId()">Add/Fix Organization ID</button>
+        <button onclick="viewData()">View Current Data</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function checkOrganization() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const orgData = localStorage.getItem('organization_data');
+                
+                if (!orgData) {
+                    resultDiv.innerHTML = '<div class="error">❌ No organization data found!</div>';
+                    return;
+                }
+                
+                const org = JSON.parse(orgData);
+                
+                if (org.id) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Organization has an ID!<br>
+                            ID: ${org.id}<br>
+                            Name: ${org.name || 'N/A'}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Organization is missing an ID!<br>
+                            Click "Add/Fix Organization ID" to add one.
+                        </div>
+                        <pre>${JSON.stringify(org, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function addOrganizationId() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const orgData = localStorage.getItem('organization_data');
+                
+                if (!orgData) {
+                    resultDiv.innerHTML = '<div class="error">❌ No organization data found! Please create an organization first.</div>';
+                    return;
+                }
+                
+                const org = JSON.parse(orgData);
+                
+                // Add ID if it doesn't exist
+                if (!org.id) {
+                    org.id = generateUUID();
+                    localStorage.setItem('organization_data', JSON.stringify(org));
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Added organization ID!<br>
+                            ID: ${org.id}<br>
+                            Name: ${org.name || 'N/A'}
+                        </div>
+                        <p>Your organization can now save data to the database.</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            ℹ️ Organization already has an ID<br>
+                            ID: ${org.id}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function viewData() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const orgData = localStorage.getItem('organization_data');
+                
+                if (!orgData) {
+                    resultDiv.innerHTML = '<div class="info">ℹ️ No organization data found.</div>';
+                    return;
+                }
+                
+                const org = JSON.parse(orgData);
+                
+                resultDiv.innerHTML = `
+                    <div class="info">
+                        📋 Organization Data
+                    </div>
+                    <pre>${JSON.stringify(org, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-check on load
+        checkOrganization();
+    </script>
+</body>
+</html>
+

@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Trash2
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface Integration {
@@ -22,31 +21,25 @@ interface Integration {
   name: string;
   status: 'connected' | 'error' | 'pending';
   last_synced_at?: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export function IntegrationSettings() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const { selectedOrganization } = useAuth();
   const supabase = createClient();
 
   useEffect(() => {
-    if (selectedOrganization) {
-      fetchIntegrations();
-    }
-  }, [selectedOrganization]);
+    fetchIntegrations();
+  }, []);
 
   const fetchIntegrations = async () => {
-    if (!selectedOrganization) return;
-
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('data_streams')
         .select('*')
-        .eq('organization_id', selectedOrganization.id)
         .order('created_at', { ascending: true });
 
       if (error) {

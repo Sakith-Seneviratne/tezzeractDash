@@ -26,7 +26,7 @@ export abstract class BaseLLMProvider {
     }
   }
 
-  protected formatResponse(content: string, usage?: any): LLMResponse {
+  protected formatResponse(content: string, usage?: Record<string, unknown>): LLMResponse {
     return {
       content: content.trim(),
       usage: usage ? {

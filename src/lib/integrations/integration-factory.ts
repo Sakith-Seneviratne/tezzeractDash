@@ -83,7 +83,7 @@ export class IntegrationFactory {
       window.crypto.getRandomValues(array);
     } else {
       // Fallback for Node.js
-      const crypto = require('crypto');
+      const crypto = eval('require')('crypto');
       const randomBytes = crypto.randomBytes(32);
       array.set(randomBytes);
     }
@@ -95,7 +95,7 @@ export class IntegrationFactory {
 
   private static generateCodeChallengeSync(verifier: string): string {
     // Use Node.js crypto for server-side generation
-    const crypto = require('crypto');
+    const crypto = eval('require')('crypto');
     const hash = crypto.createHash('sha256').update(verifier).digest();
     return btoa(String.fromCharCode.apply(null, Array.from(hash)))
       .replace(/\+/g, '-')
@@ -106,9 +106,9 @@ export class IntegrationFactory {
 
   private static getGoogleAnalyticsOAuthUrl(): string {
     const params = new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`,
-      scope: 'https://www.googleapis.com/auth/analytics.readonly',
+      scope: 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
       response_type: 'code',
       access_type: 'offline',
       prompt: 'consent',

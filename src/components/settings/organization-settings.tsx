@@ -14,7 +14,6 @@ import {
   Image,
   Settings
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface OrganizationSettings {
@@ -99,7 +98,7 @@ export function OrganizationSettings() {
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !selectedOrganization) return;
+    if (!file || !selectedOrganization || !supabase) return;
 
     try {
       // Upload to Supabase storage

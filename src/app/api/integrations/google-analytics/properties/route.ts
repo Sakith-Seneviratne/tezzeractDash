@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
       accountName: string;
     }> = [];
 
-    accountsData.accountSummaries?.forEach((account: any) => {
-      const accountName = account.displayName;
-      account.propertySummaries?.forEach((property: any) => {
+    accountsData.accountSummaries?.forEach((account: Record<string, unknown>) => {
+      const accountName = account.displayName as string;
+      (account.propertySummaries as Record<string, unknown>[])?.forEach((property: Record<string, unknown>) => {
         // Extract property ID from the property name (format: properties/123456789)
         const propertyId = property.property.split('/')[1];
         properties.push({

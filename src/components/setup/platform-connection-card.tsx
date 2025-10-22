@@ -22,7 +22,7 @@ interface PlatformConnectionCardProps {
     id: string;
     name: string;
     description: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     color: string;
     connected: boolean;
     lastSync?: string;

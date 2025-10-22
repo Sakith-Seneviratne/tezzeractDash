@@ -5,7 +5,7 @@ export interface IntegrationConfig {
   refresh_token?: string;
   expires_at?: number;
   scope?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PlatformMetrics {
@@ -15,13 +15,13 @@ export interface PlatformMetrics {
   clicks: number;
   conversions: number;
   followers?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface IntegrationData {
   date: string;
   metrics: PlatformMetrics;
-  raw_data: Record<string, any>;
+  raw_data: Record<string, unknown>;
 }
 
 export abstract class BaseIntegration {

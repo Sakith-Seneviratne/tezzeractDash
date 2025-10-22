@@ -17,7 +17,7 @@ interface Objective {
   end_date: string;
 }
 
-const Select = ({ value, onChange, children, ...props }: any) => (
+const Select = ({ value, onChange, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     value={value}
     onChange={onChange}
@@ -30,6 +30,7 @@ const Select = ({ value, onChange, children, ...props }: any) => (
 
 export function ObjectivesManager() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [newObjective, setNewObjective] = useState<Partial<Objective>>({
     type: '',
     description: '',
@@ -44,17 +45,23 @@ export function ObjectivesManager() {
     const savedObjectives = localStorage.getItem('organization_objectives');
     if (savedObjectives) {
       try {
-        setObjectives(JSON.parse(savedObjectives));
+        const parsed = JSON.parse(savedObjectives);
+        setObjectives(parsed);
+        console.log('Loaded objectives from localStorage:', parsed);
       } catch (error) {
         console.error('Error parsing saved objectives:', error);
       }
     }
+    setIsLoaded(true);
   }, []);
 
-  // Save objectives to localStorage whenever objectives change
+  // Save objectives to localStorage whenever objectives change (but only after initial load)
   useEffect(() => {
-    localStorage.setItem('organization_objectives', JSON.stringify(objectives));
-  }, [objectives]);
+    if (isLoaded) {
+      localStorage.setItem('organization_objectives', JSON.stringify(objectives));
+      console.log('Saved objectives to localStorage:', objectives);
+    }
+  }, [objectives, isLoaded]);
 
   const addObjective = () => {
     if (!newObjective.type || !newObjective.description) {
@@ -72,7 +79,12 @@ export function ObjectivesManager() {
       end_date: newObjective.end_date || ''
     };
 
-    setObjectives([...objectives, objective]);
+    const updatedObjectives = [...objectives, objective];
+    setObjectives(updatedObjectives);
+    
+    // Immediately save to localStorage to ensure it persists
+    localStorage.setItem('organization_objectives', JSON.stringify(updatedObjectives));
+    console.log('Added and saved objective:', objective);
     
     // Reset form
     setNewObjective({
@@ -86,7 +98,12 @@ export function ObjectivesManager() {
   };
 
   const removeObjective = (id: string) => {
-    setObjectives(objectives.filter(obj => obj.id !== id));
+    const updatedObjectives = objectives.filter(obj => obj.id !== id);
+    setObjectives(updatedObjectives);
+    
+    // Immediately save to localStorage
+    localStorage.setItem('organization_objectives', JSON.stringify(updatedObjectives));
+    console.log('Removed and saved objectives:', updatedObjectives);
   };
 
   return (

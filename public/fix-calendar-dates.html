@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Calendar Dates</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ef4444;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        .info {
+            background: #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Calendar Dates Tool</h1>
+        <p>This tool will fix any invalid dates in your calendar items stored in localStorage.</p>
+        
+        <button onclick="fixCalendarDates()">Fix Calendar Dates</button>
+        <button onclick="viewCalendar()">View Current Calendar</button>
+        <button onclick="clearCalendar()">Clear All Calendar Items</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function fixCalendarDates() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Get calendar from localStorage
+                const calendarStr = localStorage.getItem('content_calendar');
+                
+                if (!calendarStr) {
+                    resultDiv.innerHTML = '<div class="info">ℹ️ No calendar items found in localStorage.</div>';
+                    return;
+                }
+                
+                const calendar = JSON.parse(calendarStr);
+                let fixedCount = 0;
+                let invalidCount = 0;
+                
+                // Fix each item
+                const fixedCalendar = calendar.map(item => {
+                    // Check if posting_date is valid
+                    if (!item.posting_date || item.posting_date === '') {
+                        invalidCount++;
+                        // Use tomorrow as default
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        item.posting_date = tomorrow.toISOString().split('T')[0];
+                        fixedCount++;
+                    } else {
+                        // Try to parse and reformat the date
+                        try {
+                            const dateObj = new Date(item.posting_date);
+                            if (isNaN(dateObj.getTime())) {
+                                // Invalid date
+                                invalidCount++;
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                item.posting_date = tomorrow.toISOString().split('T')[0];
+                                fixedCount++;
+                            } else {
+                                // Valid date, ensure it's in YYYY-MM-DD format
+                                item.posting_date = dateObj.toISOString().split('T')[0];
+                            }
+                        } catch (e) {
+                            invalidCount++;
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            item.posting_date = tomorrow.toISOString().split('T')[0];
+                            fixedCount++;
+                        }
+                    }
+                    
+                    return item;
+                });
+                
+                // Save back to localStorage
+                localStorage.setItem('content_calendar', JSON.stringify(fixedCalendar));
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Calendar fixed successfully!<br>
+                        Total items: ${calendar.length}<br>
+                        Invalid dates found: ${invalidCount}<br>
+                        Items fixed: ${fixedCount}
+                    </div>
+                    <p>Please refresh your calendar page to see the changes.</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function viewCalendar() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const calendarStr = localStorage.getItem('content_calendar');
+                
+                if (!calendarStr) {
+                    resultDiv.innerHTML = '<div class="info">ℹ️ No calendar items found.</div>';
+                    return;
+                }
+                
+                const calendar = JSON.parse(calendarStr);
+                
+                resultDiv.innerHTML = `
+                    <div class="info">
+                        📅 Found ${calendar.length} calendar items
+                    </div>
+                    <pre>${JSON.stringify(calendar, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function clearCalendar() {
+            if (confirm('Are you sure you want to clear ALL calendar items? This cannot be undone!')) {
+                localStorage.removeItem('content_calendar');
+                document.getElementById('result').innerHTML = '<div class="success">✅ Calendar cleared successfully!</div>';
+            }
+        }
+    </script>
+</body>
+</html>
+

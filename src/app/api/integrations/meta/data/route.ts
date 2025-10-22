@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       `https://graph.facebook.com/v18.0/${pageId}/insights?metric=page_impressions,page_reach,page_engaged_users,page_post_engagements,page_actions_post_reactions_total&since=${formatDate(startDate)}&until=${formatDate(endDate)}&access_token=${accessToken}`
     );
 
-    let facebookMetrics = {
+    const facebookMetrics = {
       impressions: 0,
       reach: 0,
       engagement: 0,
@@ -88,9 +88,9 @@ export async function GET(request: NextRequest) {
       const facebookData = await facebookInsightsResponse.json();
       const insights = facebookData.data || [];
 
-      insights.forEach((insight: any) => {
-        const values = insight.values || [];
-        const totalValue = values.reduce((sum: number, value: any) => sum + (value.value || 0), 0);
+      insights.forEach((insight: Record<string, unknown>) => {
+        const values = (insight.values as Record<string, unknown>[]) || [];
+        const totalValue = values.reduce((sum: number, value: Record<string, unknown>) => sum + ((value.value as number) || 0), 0);
         
         switch (insight.name) {
           case 'page_impressions':
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch Instagram insights if available
-    let instagramMetrics = {
+    const instagramMetrics = {
       impressions: 0,
       reach: 0,
       engagement: 0,
@@ -138,9 +138,9 @@ export async function GET(request: NextRequest) {
         const instagramData = await instagramInsightsResponse.json();
         const insights = instagramData.data || [];
 
-        insights.forEach((insight: any) => {
-          const values = insight.values || [];
-          const totalValue = values.reduce((sum: number, value: any) => sum + (value.value || 0), 0);
+        insights.forEach((insight: Record<string, unknown>) => {
+          const values = (insight.values as Record<string, unknown>[]) || [];
+          const totalValue = values.reduce((sum: number, value: Record<string, unknown>) => sum + ((value.value as number) || 0), 0);
           
           switch (insight.name) {
             case 'impressions':

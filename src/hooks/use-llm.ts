@@ -6,14 +6,14 @@ import { ContentSuggestion, AnalyticsInsight } from '@/lib/llm/types';
 
 interface UseLLMReturn {
   generateInsights: (
-    metrics: any,
-    platformData: any[],
+    metrics: Record<string, unknown>,
+    platformData: Record<string, unknown>[],
     provider?: LLMProviderType
   ) => Promise<AnalyticsInsight | null>;
   generateContentSuggestions: (
-    analyticsData: any,
-    objectives?: any[],
-    competitorData?: any[],
+    analyticsData: Record<string, unknown>,
+    objectives?: Record<string, unknown>[],
+    competitorData?: Record<string, unknown>[],
     provider?: LLMProviderType
   ) => Promise<ContentSuggestion[]>;
   loading: boolean;
@@ -25,8 +25,8 @@ export function useLLM(): UseLLMReturn {
   const [error, setError] = useState<string | null>(null);
 
   const generateInsights = async (
-    metrics: any,
-    platformData: any[],
+    metrics: Record<string, unknown>,
+    platformData: Record<string, unknown>[],
     provider: LLMProviderType = 'openai'
   ): Promise<AnalyticsInsight | null> => {
     setLoading(true);
@@ -62,9 +62,9 @@ export function useLLM(): UseLLMReturn {
   };
 
   const generateContentSuggestions = async (
-    analyticsData: any,
-    objectives: any[] = [],
-    competitorData: any[] = [],
+    analyticsData: Record<string, unknown>,
+    objectives: Record<string, unknown>[] = [],
+    competitorData: Record<string, unknown>[] = [],
     provider: LLMProviderType = 'openai'
   ): Promise<ContentSuggestion[]> => {
     setLoading(true);

@@ -16,7 +16,6 @@ import {
   Trash2,
   MoreVertical
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface OrganizationMember {

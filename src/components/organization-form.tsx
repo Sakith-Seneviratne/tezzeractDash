@@ -6,12 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/contexts/auth-context';
 import { generateSlug } from '@/lib/utils';
 
 // Simple select component
-const Select = ({ value, onChange, children, ...props }: any) => (
+const Select = ({ value, onChange, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select
     value={value}
     onChange={onChange}
@@ -30,11 +28,9 @@ export function OrganizationForm() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [existingOrganization, setExistingOrganization] = useState<any>(null);
+  const [existingOrganization, setExistingOrganization] = useState<Record<string, unknown> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
-  const { user, refreshOrganizations } = useAuth();
 
   // Load existing organization data on component mount
   useEffect(() => {
@@ -55,6 +51,15 @@ export function OrganizationForm() {
     }
   }, []);
 
+  // Generate UUID
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -70,7 +75,7 @@ export function OrganizationForm() {
       
       // Store organization data in localStorage
       const organizationData = {
-        id: existingOrganization?.id || Date.now().toString(), // Keep existing ID or generate new
+        id: existingOrganization?.id || generateUUID(), // Keep existing ID or generate new UUID
         name,
         slug,
         type,
@@ -88,6 +93,26 @@ export function OrganizationForm() {
       localStorage.setItem('organization_data', JSON.stringify(organizationData));
       
       console.log('Organization data saved to localStorage successfully!');
+      
+      // Also save to database
+      try {
+        const response = await fetch('/api/organization', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organization: organizationData })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('Organization also saved to database!');
+        } else {
+          console.warn('Database save failed, but localStorage is updated:', result.message);
+        }
+      } catch (dbError) {
+        console.error('Failed to save organization to database:', dbError);
+        console.log('Organization is saved to localStorage only');
+      }
       
       const action = isEditing ? 'updated' : 'created';
       alert(`Organization ${action} successfully!`);

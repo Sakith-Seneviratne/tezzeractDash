@@ -17,7 +17,6 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { LLMProviderType } from '@/lib/llm/llm-service';
 
@@ -172,7 +171,7 @@ export function LLMSettings() {
     }));
   };
 
-  const updateProviderSetting = (provider: LLMProviderType, field: string, value: any) => {
+  const updateProviderSetting = (provider: LLMProviderType, field: string, value: unknown) => {
     setSettings(prev => ({
       ...prev,
       providers: {

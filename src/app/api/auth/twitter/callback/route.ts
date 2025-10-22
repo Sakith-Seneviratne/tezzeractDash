@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         code,
         grant_type: 'authorization_code',
         redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/twitter/callback`,
-        code_verifier: state, // Use state as code_verifier for PKCE
+        code_verifier: state || '', // Use state as code_verifier for PKCE
       }),
     });
 

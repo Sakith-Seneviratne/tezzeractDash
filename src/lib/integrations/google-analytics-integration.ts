@@ -86,7 +86,7 @@ export class GoogleAnalyticsIntegration extends BaseIntegration {
     return data;
   }
 
-  private async fetchAnalyticsData(date: string): Promise<{ metrics: PlatformMetrics; raw_data: any }> {
+  private async fetchAnalyticsData(date: string): Promise<{ metrics: PlatformMetrics; raw_data: Record<string, unknown> }> {
     try {
       // Get the first available view ID (property)
       const accountsResponse = await this.makeAuthenticatedRequest(

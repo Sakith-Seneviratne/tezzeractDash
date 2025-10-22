@@ -16,7 +16,6 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface UserSettings {
@@ -48,22 +47,20 @@ export function UserSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user } = useAuth();
   const supabase = createClient();
 
   useEffect(() => {
-    if (user) {
-      setSettings(prev => ({
-        ...prev,
-        full_name: user.user_metadata?.full_name || '',
-        email: user.email || '',
-        avatar_url: user.user_metadata?.avatar_url || '',
-      }));
-    }
-  }, [user]);
+    // Initialize with default settings since we don't have user auth
+    setSettings(prev => ({
+      ...prev,
+      full_name: 'User',
+      email: 'user@example.com',
+      avatar_url: '',
+    }));
+  }, []);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!supabase) return;
 
     setSaving(true);
     try {
@@ -92,12 +89,12 @@ export function UserSettings() {
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !supabase) return;
 
     try {
       // Upload to Supabase storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}.${fileExt}`;
+      const fileName = `user-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage

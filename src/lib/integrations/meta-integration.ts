@@ -98,7 +98,7 @@ export class MetaIntegration extends BaseIntegration {
     return data;
   }
 
-  private async fetchFacebookInsights(date: string): Promise<any> {
+  private async fetchFacebookInsights(date: string): Promise<Record<string, unknown>> {
     try {
       // Get page insights
       const response = await this.makeAuthenticatedRequest(
@@ -133,7 +133,7 @@ export class MetaIntegration extends BaseIntegration {
     }
   }
 
-  private async fetchInstagramInsights(date: string): Promise<any> {
+  private async fetchInstagramInsights(date: string): Promise<Record<string, unknown>> {
     try {
       // Get Instagram business account insights
       const response = await this.makeAuthenticatedRequest(
@@ -168,7 +168,7 @@ export class MetaIntegration extends BaseIntegration {
     }
   }
 
-  private extractMetricValue(insights: any[], metricName: string): number {
+  private extractMetricValue(insights: Record<string, unknown>[], metricName: string): number {
     const metric = insights.find(insight => insight.name === metricName);
     if (metric && metric.values && metric.values.length > 0) {
       return metric.values[0].value || 0;

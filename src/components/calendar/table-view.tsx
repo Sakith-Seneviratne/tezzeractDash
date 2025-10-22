@@ -85,8 +85,8 @@ export function TableView({
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
+      let aValue: unknown = a[sortField];
+      let bValue: unknown = b[sortField];
 
       if (sortField === 'posting_date') {
         aValue = new Date(aValue);
@@ -193,7 +193,7 @@ export function TableView({
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
-                          {new Date(item.posting_date).toLocaleDateString()}
+                          {item.posting_date ? new Date(item.posting_date + 'T00:00:00').toLocaleDateString() : 'No date'}
                         </span>
                       </div>
                     </td>
@@ -249,7 +249,7 @@ export function TableView({
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No content found. Click "Add Content" to get started.</p>
+                    <p>No content found. Click &quot;Add Content&quot; to get started.</p>
                   </td>
                 </tr>
               )}

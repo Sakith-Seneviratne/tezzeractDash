@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
 
     const rows = reportData.rows || [];
     
-    rows.forEach((row: any) => {
+    rows.forEach((row: Record<string, unknown>) => {
       totalSessions += parseInt(row.metricValues[0]?.value || '0');
       totalUsers += parseInt(row.metricValues[1]?.value || '0');
       totalPageViews += parseInt(row.metricValues[2]?.value || '0');

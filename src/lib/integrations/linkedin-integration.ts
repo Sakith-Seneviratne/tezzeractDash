@@ -83,7 +83,7 @@ export class LinkedInIntegration extends BaseIntegration {
     return data;
   }
 
-  private async fetchCompanyInsights(date: string): Promise<{ metrics: PlatformMetrics; raw_data: any }> {
+  private async fetchCompanyInsights(date: string): Promise<{ metrics: PlatformMetrics; raw_data: Record<string, unknown> }> {
     try {
       // Get company page analytics
       const response = await this.makeAuthenticatedRequest(

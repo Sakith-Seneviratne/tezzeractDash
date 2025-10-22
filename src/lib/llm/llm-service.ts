@@ -64,9 +64,9 @@ export class LLMService {
   }
 
   async generateContentSuggestions(
-    analyticsData: any,
-    objectives: any[],
-    competitorData: any[],
+    analyticsData: Record<string, unknown>,
+    objectives: Record<string, unknown>[],
+    competitorData: Record<string, unknown>[],
     provider: LLMProviderType = 'openai'
   ): Promise<ContentSuggestion[]> {
     const prompt = this.buildContentSuggestionPrompt(analyticsData, objectives, competitorData);
@@ -80,8 +80,8 @@ export class LLMService {
   }
 
   async generateAnalyticsInsights(
-    metrics: any,
-    platformData: any[],
+    metrics: Record<string, unknown>,
+    platformData: Record<string, unknown>[],
     provider: LLMProviderType = 'openai'
   ): Promise<AnalyticsInsight> {
     const prompt = this.buildAnalyticsInsightPrompt(metrics, platformData);
@@ -95,9 +95,9 @@ export class LLMService {
   }
 
   private buildContentSuggestionPrompt(
-    analyticsData: any,
-    objectives: any[],
-    competitorData: any[]
+    analyticsData: Record<string, unknown>,
+    objectives: Record<string, unknown>[],
+    competitorData: Record<string, unknown>[]
   ): string {
     return `
 You are a social media content strategist. Based on the following data, generate 5 content suggestions:
@@ -131,7 +131,7 @@ Make sure the suggestions are relevant to the data provided and align with the o
 `;
   }
 
-  private buildAnalyticsInsightPrompt(metrics: any, platformData: any[]): string {
+  private buildAnalyticsInsightPrompt(metrics: Record<string, unknown>, platformData: Record<string, unknown>[]): string {
     return `
 You are a data analyst. Analyze the following social media metrics and provide insights:
 

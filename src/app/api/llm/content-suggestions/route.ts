@@ -14,6 +14,8 @@ interface Objective {
   description: string;
   target_impressions: number;
   target_reach: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 // Function to scrape website content (simplified version)
@@ -33,7 +35,7 @@ async function scrapeWebsiteContent(url: string): Promise<string> {
     
     // Simple HTML parsing to extract text content
     // Remove script and style elements
-    let textContent = html
+    const textContent = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<[^>]*>/g, ' ') // Remove all HTML tags
@@ -84,8 +86,55 @@ export async function POST(request: NextRequest) {
       websiteContent = await scrapeWebsiteContent(organizationData.website_url);
     }
 
+    // Get current date and calculate date range
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Find the earliest start date and latest end date from objectives
+    let earliestStart: string | null = null;
+    let latestEnd: string | null = null;
+    
+    objectives.forEach(obj => {
+      if (obj.start_date) {
+        if (!earliestStart || obj.start_date < earliestStart) {
+          earliestStart = obj.start_date;
+        }
+      }
+      if (obj.end_date) {
+        if (!latestEnd || obj.end_date > latestEnd) {
+          latestEnd = obj.end_date;
+        }
+      }
+    });
+    
+    // If no dates in objectives, use today + 7 to 30 days
+    if (!earliestStart) {
+      const nextWeek = new Date(today);
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      earliestStart = nextWeek.toISOString().split('T')[0];
+    }
+    
+    if (!latestEnd) {
+      const next30Days = new Date(today);
+      next30Days.setDate(next30Days.getDate() + 30);
+      latestEnd = next30Days.toISOString().split('T')[0];
+    }
+    
+    // Make sure earliestStart is not in the past
+    if (earliestStart < todayStr) {
+      earliestStart = todayStr;
+    }
+
+    console.log('Date range calculation:');
+    console.log('- Today:', todayStr);
+    console.log('- Earliest start:', earliestStart);
+    console.log('- Latest end:', latestEnd);
+    console.log('- Objectives with dates:', objectives.filter(o => o.start_date || o.end_date));
+
     // Create comprehensive prompt for Gemini
     const prompt = `You are a social media content strategist and copywriter. Generate 3 high-quality, personalized content suggestions for a business.
+
+IMPORTANT: Today's date is ${todayStr}. All posting dates MUST be between ${earliestStart} and ${latestEnd}.
 
 BUSINESS INFORMATION:
 - Company Name: ${organizationData.name}
@@ -95,7 +144,10 @@ BUSINESS INFORMATION:
 ${organizationData.website_url ? `- Website: ${organizationData.website_url}` : ''}
 
 BUSINESS OBJECTIVES:
-${objectives.map(obj => `- ${obj.type}: ${obj.description} (Target: ${obj.target_impressions} impressions, ${obj.target_reach} reach)`).join('\n')}
+${objectives.map(obj => {
+  const dateRange = obj.start_date && obj.end_date ? ` [${obj.start_date} to ${obj.end_date}]` : '';
+  return `- ${obj.type.replace('_', ' ').toUpperCase()}: ${obj.description}${dateRange} (Target: ${obj.target_impressions || 0} impressions, ${obj.target_reach || 0} reach)`;
+}).join('\n')}
 
 ${websiteContent ? `WEBSITE CONTENT CONTEXT:\n${websiteContent}` : ''}
 
@@ -118,7 +170,13 @@ For each suggestion, provide:
 - creative_guidance: Specific creative direction and tips
 - caption: Engaging social media caption with emojis
 - hashtags: Array of relevant hashtags (5-8 hashtags)
-- posting_date: Suggested posting date (2-5 days from today in YYYY-MM-DD format)
+- posting_date: Suggested posting date in YYYY-MM-DD format. MUST be a future date between ${earliestStart} and ${latestEnd}. Spread the 3 suggestions across different dates within this range.
+
+CRITICAL: The posting_date field must be:
+1. In YYYY-MM-DD format (e.g., ${earliestStart})
+2. A date in the future (after ${todayStr})
+3. Within the objectives date range (${earliestStart} to ${latestEnd})
+4. Each of the 3 suggestions should have different dates
 
 Return ONLY a valid JSON array with 3 objects, each containing these exact fields.`;
 
@@ -209,7 +267,7 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
     }
 
     // Add unique IDs to suggestions
-    const suggestionsWithIds = suggestions.map((suggestion: any) => ({
+    const suggestionsWithIds = suggestions.map((suggestion: Record<string, unknown>) => ({
       ...suggestion,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
     }));

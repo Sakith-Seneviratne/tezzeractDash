@@ -18,7 +18,6 @@ import {
   Linkedin,
   Twitter
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface Competitor {

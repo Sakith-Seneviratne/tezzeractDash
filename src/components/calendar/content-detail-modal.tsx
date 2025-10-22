@@ -1,21 +1,22 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { 
   X,
   Save,
   Trash2,
-  Calendar,
-  Link,
-  Paperclip,
-  FileText
+  Paperclip
 } from 'lucide-react';
 import { ContentCalendar } from '@/types';
+
+interface Attachment {
+  name: string;
+  url: string;
+  type: string;
+}
 
 interface ContentDetailModalProps {
   content: ContentCalendar | null;
@@ -108,23 +109,23 @@ export function ContentDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-black rounded-lg border-2 border-black dark:border-white shadow-2xl">
+        <div className="flex flex-col space-y-1.5 p-6 border-b-2 border-black dark:border-white bg-white dark:bg-black">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>
+              <h3 className="text-2xl font-semibold leading-none tracking-tight">
                 {content ? 'Edit Content' : 'Add New Content'}
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-sm  mt-1.5">
                 {content ? 'Update your content details' : 'Create new content for your calendar'}
-              </CardDescription>
+              </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-6 pt-6 bg-white dark:bg-black">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,8 +157,8 @@ export function ContentDetailModal({
                 <select
                   id="platform"
                   value={formData.platform || 'facebook'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value as ContentCalendar['platform'] }))}
+                  className="w-full p-2 border-2 rounded-md "
                 >
                   <option value="facebook">Facebook</option>
                   <option value="instagram">Instagram</option>
@@ -173,7 +174,7 @@ export function ContentDetailModal({
                   id="content_type"
                   value={formData.content_type || 'post'}
                   onChange={(e) => setFormData(prev => ({ ...prev, content_type: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border-2  rounded-md "
                 >
                   <option value="post">Post</option>
                   <option value="video">Video</option>
@@ -187,8 +188,8 @@ export function ContentDetailModal({
                 <select
                   id="status"
                   value={formData.status || 'draft'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as ContentCalendar['status'] }))}
+                  className="w-full p-2 border-2  rounded-md "
                 >
                   <option value="draft">Draft</option>
                   <option value="scheduled">Scheduled</option>
@@ -248,7 +249,7 @@ export function ContentDetailModal({
                 value={formData.caption || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
                 placeholder="Social media caption text"
-                className="w-full p-2 border rounded-md min-h-[100px]"
+                className="w-full p-2 border-2 rounded-md min-h-[100px] bg-white dark:bg-black  placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
 
@@ -275,22 +276,22 @@ export function ContentDetailModal({
                 </Button>
               </div>
               <div className="space-y-2">
-                {formData.attachments?.map((attachment, index) => (
+                {(formData.attachments || []).map((attachment: Record<string, unknown>, index) => (
                   <div key={index} className="flex items-center space-x-2 p-2 border rounded">
                     <Input
                       placeholder="Attachment name"
-                      value={attachment.name}
+                      value={String((attachment as Attachment).name || '')}
                       onChange={(e) => updateAttachment(index, 'name', e.target.value)}
                     />
                     <Input
                       placeholder="URL"
-                      value={attachment.url}
+                      value={String((attachment as Attachment).url || '')}
                       onChange={(e) => updateAttachment(index, 'url', e.target.value)}
                     />
                     <select
-                      value={attachment.type}
+                      value={String((attachment as Attachment).type || 'image')}
                       onChange={(e) => updateAttachment(index, 'type', e.target.value)}
-                      className="p-2 border rounded"
+                      className="p-2 border-2 border-black dark:border-white rounded bg-white dark:bg-black text-black dark:text-white"
                     >
                       <option value="image">Image</option>
                       <option value="video">Video</option>
@@ -317,12 +318,12 @@ export function ContentDetailModal({
                 value={formData.notes || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Additional notes or reminders"
-                className="w-full p-2 border rounded-md min-h-[100px]"
+                className="w-full p-2 border-2 rounded-md min-h-[100px] bg-white dark:bg-black placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center justify-between pt-4 border-t-2 border-black dark:border-white">
               <div>
                 {content && (
                   <Button
@@ -347,8 +348,8 @@ export function ContentDetailModal({
               </div>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

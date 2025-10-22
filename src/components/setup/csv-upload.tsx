@@ -15,7 +15,6 @@ import {
   Trash2,
   Eye
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 
 interface CsvUpload {
@@ -31,7 +30,7 @@ export function CsvUpload() {
   const [uploads, setUploads] = useState<CsvUpload[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
   const { selectedOrganization } = useAuth();

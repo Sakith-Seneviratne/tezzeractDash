@@ -9,8 +9,6 @@ import { CalendarView } from '@/components/calendar/calendar-view';
 import { TableView } from '@/components/calendar/table-view';
 import { ContentDetailModal } from '@/components/calendar/content-detail-modal';
 import { ContentCalendar } from '@/types';
-import { useAuth } from '@/contexts/auth-context';
-import { createClient } from '@/lib/supabase/client';
 
 export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
@@ -18,31 +16,55 @@ export default function CalendarPage() {
   const [selectedContent, setSelectedContent] = useState<ContentCalendar | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { selectedOrganization } = useAuth();
-  const supabase = createClient();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    if (selectedOrganization) {
-      fetchContentItems();
-    }
-  }, [selectedOrganization]);
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    fetchContentItems();
+  }, []);
 
   const fetchContentItems = async () => {
-    if (!selectedOrganization) return;
-
     try {
-      const { data, error } = await supabase
-        .from('content_calendar')
-        .select('*')
-        .eq('organization_id', selectedOrganization.id)
-        .order('posting_date', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching content items:', error);
-        return;
+      // Get organization ID from localStorage
+      const savedOrgData = localStorage.getItem('organization_data');
+      if (savedOrgData) {
+        const orgData = JSON.parse(savedOrgData);
+        
+        // Fetch from database
+        try {
+          const response = await fetch(`/api/calendar?organization_id=${orgData.id}`);
+          if (response.ok) {
+            const { items } = await response.json();
+            setContentItems(items || []);
+            // Also save to localStorage as backup
+            localStorage.setItem('content_calendar', JSON.stringify(items || []));
+            console.log(`✅ Loaded ${items?.length || 0} items from database`);
+          } else {
+            // Fallback to localStorage
+            console.warn('Database fetch failed, using localStorage');
+            const savedCalendar = localStorage.getItem('content_calendar');
+            if (savedCalendar) {
+              setContentItems(JSON.parse(savedCalendar));
+            }
+          }
+        } catch (dbError) {
+          console.error('Database error, using localStorage:', dbError);
+          // Fallback to localStorage
+          const savedCalendar = localStorage.getItem('content_calendar');
+          if (savedCalendar) {
+            setContentItems(JSON.parse(savedCalendar));
+          }
+        }
+      } else {
+        // No organization, use localStorage only
+        const savedCalendar = localStorage.getItem('content_calendar');
+        if (savedCalendar) {
+          setContentItems(JSON.parse(savedCalendar));
+        }
       }
-
-      setContentItems(data || []);
     } catch (error) {
       console.error('Error fetching content items:', error);
     } finally {
@@ -61,41 +83,72 @@ export default function CalendarPage() {
   };
 
   const handleSaveContent = async (content: ContentCalendar) => {
-    if (!selectedOrganization) return;
-
     try {
-      if (content.id) {
-        // Update existing content
-        const { error } = await supabase
-          .from('content_calendar')
-          .update({
-            ...content,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', content.id);
-
-        if (error) {
-          console.error('Error updating content:', error);
-          return;
+      const savedOrgData = localStorage.getItem('organization_data');
+      const orgData = savedOrgData ? JSON.parse(savedOrgData) : null;
+      
+      if (content.id && content.id.length > 15) {
+        // Update existing content in database
+        try {
+          const response = await fetch('/api/calendar', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(content)
+          });
+          
+          if (response.ok) {
+            const { item } = await response.json();
+            const updatedItems = contentItems.map(i => i.id === item.id ? item : i);
+            setContentItems(updatedItems);
+            localStorage.setItem('content_calendar', JSON.stringify(updatedItems));
+            console.log('✅ Updated in database');
+          } else {
+            throw new Error('Database update failed');
+          }
+        } catch (dbError) {
+          console.error('Database error, saving to localStorage only:', dbError);
+          const updatedItems = contentItems.map(item => 
+            item.id === content.id ? { ...content, updated_at: new Date().toISOString() } : item
+          );
+          setContentItems(updatedItems);
+          localStorage.setItem('content_calendar', JSON.stringify(updatedItems));
         }
       } else {
-        // Create new content
-        const { error } = await supabase
-          .from('content_calendar')
-          .insert({
+        // Add new content to database
+        const newContentData = {
+          organization_id: orgData?.id,
+          ...content
+        };
+        
+        try {
+          const response = await fetch('/api/calendar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newContentData)
+          });
+          
+          if (response.ok) {
+            const { item } = await response.json();
+            const updatedItems = [...contentItems, item];
+            setContentItems(updatedItems);
+            localStorage.setItem('content_calendar', JSON.stringify(updatedItems));
+            console.log('✅ Saved to database');
+          } else {
+            throw new Error('Database save failed');
+          }
+        } catch (dbError) {
+          console.error('Database error, saving to localStorage only:', dbError);
+          const newContent = {
             ...content,
-            organization_id: selectedOrganization.id,
+            id: Date.now().toString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          });
-
-        if (error) {
-          console.error('Error creating content:', error);
-          return;
+          };
+          const updatedItems = [...contentItems, newContent];
+          setContentItems(updatedItems);
+          localStorage.setItem('content_calendar', JSON.stringify(updatedItems));
         }
       }
-
-      await fetchContentItems();
     } catch (error) {
       console.error('Error saving content:', error);
     }
@@ -103,17 +156,23 @@ export default function CalendarPage() {
 
   const handleDeleteContent = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('content_calendar')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting content:', error);
-        return;
+      // Try to delete from database
+      try {
+        const response = await fetch(`/api/calendar?id=${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          console.log('✅ Deleted from database');
+        }
+      } catch (dbError) {
+        console.error('Database delete error:', dbError);
       }
-
-      await fetchContentItems();
+      
+      // Always update local state and localStorage
+      const updatedItems = contentItems.filter(item => item.id !== id);
+      setContentItems(updatedItems);
+      localStorage.setItem('content_calendar', JSON.stringify(updatedItems));
     } catch (error) {
       console.error('Error deleting content:', error);
     }
@@ -139,6 +198,19 @@ export default function CalendarPage() {
 
   const stats = getStats();
   const platformStats = getPlatformStats();
+
+  if (!isHydrated) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Content Calendar</h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
