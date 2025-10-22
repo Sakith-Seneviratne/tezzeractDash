@@ -64,19 +64,19 @@ export class MetaIntegration extends BaseIntegration {
         const dateStr = currentDate.toISOString().split('T')[0];
         
         // Fetch Facebook page insights
-        const facebookData = await this.fetchFacebookInsights(dateStr);
+        const facebookData = await this.fetchFacebookInsights(dateStr) as PlatformMetrics;
         
         // Fetch Instagram account insights
-        const instagramData = await this.fetchInstagramInsights(dateStr);
+        const instagramData = await this.fetchInstagramInsights(dateStr) as PlatformMetrics;
 
         // Combine metrics
         const combinedMetrics: PlatformMetrics = {
-          impressions: (facebookData.impressions || 0) + (instagramData.impressions || 0),
-          reach: (facebookData.reach || 0) + (instagramData.reach || 0),
-          engagement: (facebookData.engagement || 0) + (instagramData.engagement || 0),
-          clicks: (facebookData.clicks || 0) + (instagramData.clicks || 0),
-          conversions: (facebookData.conversions || 0) + (instagramData.conversions || 0),
-          followers: (facebookData.followers || 0) + (instagramData.followers || 0),
+          impressions: (facebookData?.impressions || 0) + (instagramData?.impressions || 0),
+          reach: (facebookData?.reach || 0) + (instagramData?.reach || 0),
+          engagement: (facebookData?.engagement || 0) + (instagramData?.engagement || 0),
+          clicks: (facebookData?.clicks || 0) + (instagramData?.clicks || 0),
+          conversions: (facebookData?.conversions || 0) + (instagramData?.conversions || 0),
+          followers: (facebookData?.followers || 0) + (instagramData?.followers || 0),
         };
 
         data.push({
@@ -170,8 +170,9 @@ export class MetaIntegration extends BaseIntegration {
 
   private extractMetricValue(insights: Record<string, unknown>[], metricName: string): number {
     const metric = insights.find(insight => insight.name === metricName);
-    if (metric && metric.values && metric.values.length > 0) {
-      return metric.values[0].value || 0;
+    if (metric && metric.values && Array.isArray(metric.values) && metric.values.length > 0) {
+      const firstValue = metric.values[0] as { value?: number };
+      return firstValue?.value || 0;
     }
     return 0;
   }

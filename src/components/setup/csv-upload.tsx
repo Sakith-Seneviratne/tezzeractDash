@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,8 +33,15 @@ export function CsvUpload() {
   const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
-  const { selectedOrganization } = useAuth();
+  const [selectedOrganization, setSelectedOrganization] = useState<{id: string} | null>(null);
   const supabase = createClient();
+  
+  useEffect(() => {
+    const orgData = localStorage.getItem('organization_data');
+    if (orgData) {
+      setSelectedOrganization(JSON.parse(orgData));
+    }
+  }, []);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -63,7 +70,7 @@ export function CsvUpload() {
   };
 
   const handleFile = async (file: File) => {
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     // Validate file type
     if (!file.name.endsWith('.csv')) {
@@ -149,6 +156,8 @@ export function CsvUpload() {
   };
 
   const processUpload = async (uploadId: string) => {
+    if (!supabase) return;
+    
     try {
       const { error } = await supabase
         .from('csv_uploads')
@@ -180,6 +189,7 @@ export function CsvUpload() {
 
   const deleteUpload = async (uploadId: string) => {
     if (!confirm('Are you sure you want to delete this upload?')) return;
+    if (!supabase) return;
 
     try {
       const { error } = await supabase
@@ -297,7 +307,7 @@ export function CsvUpload() {
                       <tr key={index} className="border-b">
                         {Object.values(row).map((value, cellIndex) => (
                           <td key={cellIndex} className="p-2 border-r text-xs">
-                            {value}
+                            {String(value)}
                           </td>
                         ))}
                       </tr>

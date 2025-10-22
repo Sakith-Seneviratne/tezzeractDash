@@ -49,7 +49,7 @@ export function OrganizationSettings() {
     },
   });
   const [saving, setSaving] = useState(false);
-  const [selectedOrganization, setSelectedOrganization] = useState<{id: string; name?: string; slug?: string; settings?: any} | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<{id: string; name?: string; slug?: string; settings?: Record<string, unknown>} | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -66,15 +66,15 @@ export function OrganizationSettings() {
         ...prev,
         name: selectedOrganization.name || '',
         slug: selectedOrganization.slug || '',
-        logo_url: selectedOrganization.settings?.logo_url || '',
-        branding: selectedOrganization.settings?.branding || prev.branding,
-        default_dashboard_layout: selectedOrganization.settings?.default_dashboard_layout || prev.default_dashboard_layout,
+        logo_url: (selectedOrganization.settings?.logo_url as string) || '',
+        branding: (selectedOrganization.settings?.branding as typeof prev.branding) || prev.branding,
+        default_dashboard_layout: (selectedOrganization.settings?.default_dashboard_layout as typeof prev.default_dashboard_layout) || prev.default_dashboard_layout,
       }));
     }
   }, [selectedOrganization]);
 
   const handleSave = async () => {
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     setSaving(true);
     try {

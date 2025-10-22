@@ -30,9 +30,9 @@ export abstract class BaseLLMProvider {
     return {
       content: content.trim(),
       usage: usage ? {
-        promptTokens: usage.prompt_tokens || 0,
-        completionTokens: usage.completion_tokens || 0,
-        totalTokens: usage.total_tokens || 0,
+        promptTokens: (usage.prompt_tokens as number) || 0,
+        completionTokens: (usage.completion_tokens as number) || 0,
+        totalTokens: (usage.total_tokens as number) || 0,
       } : undefined,
     };
   }

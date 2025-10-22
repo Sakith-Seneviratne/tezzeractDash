@@ -27,7 +27,6 @@ export interface IntegrationData {
 export abstract class BaseIntegration {
   protected organizationId: string;
   protected config: IntegrationConfig;
-  protected supabase = createClient();
 
   constructor(organizationId: string, config: IntegrationConfig) {
     this.organizationId = organizationId;
@@ -42,7 +41,8 @@ export abstract class BaseIntegration {
 
   protected async saveData(data: IntegrationData[], dataStreamId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('analytics_data')
         .upsert(
           data.map(item => ({
@@ -67,7 +67,8 @@ export abstract class BaseIntegration {
 
   protected async updateDataStreamStatus(status: 'active' | 'error' | 'pending', lastSyncedAt?: Date): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const supabase = await createClient();
+      const { error } = await supabase
         .from('data_streams')
         .update({
           status,

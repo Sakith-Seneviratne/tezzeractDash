@@ -34,8 +34,15 @@ export function CompetitorManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [loading, setLoading] = useState(false);
-  const { selectedOrganization } = useAuth();
+  const [selectedOrganization, setSelectedOrganization] = useState<{id: string} | null>(null);
   const supabase = createClient();
+  
+  useEffect(() => {
+    const orgData = localStorage.getItem('organization_data');
+    if (orgData) {
+      setSelectedOrganization(JSON.parse(orgData));
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -51,7 +58,7 @@ export function CompetitorManager() {
   }, [selectedOrganization]);
 
   const fetchCompetitors = async () => {
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     try {
       const { data, error } = await supabase
@@ -73,7 +80,7 @@ export function CompetitorManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     setLoading(true);
     try {
@@ -119,6 +126,7 @@ export function CompetitorManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this competitor?')) return;
+    if (!supabase) return;
 
     try {
       const { error } = await supabase
