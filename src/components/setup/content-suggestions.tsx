@@ -181,7 +181,7 @@ export function ContentSuggestions() {
       // Save to database if organization_id is available
       if (organizationData?.id) {
         try {
-          console.log('Saving suggestions to database...');
+          console.log('Saving suggestions to database....');
           const saveResponse = await fetch('/api/suggestions/save', {
             method: 'POST',
             headers: {
