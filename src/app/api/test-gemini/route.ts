@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
       details: {
-        name: error.name,
-        message: error.message
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error)
       }
     });
   }

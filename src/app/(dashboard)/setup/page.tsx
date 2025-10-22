@@ -21,9 +21,16 @@ import { OrganizationForm } from '@/components/organization-form';
 import { ObjectivesManager } from '@/components/setup/objectives-manager';
 import { ContentSuggestions } from '@/components/setup/content-suggestions';
 
+interface GoogleProperty {
+  propertyId: string;
+  displayName: string;
+  name?: string;
+  accountName?: string;
+}
+
 export default function SetupPage() {
   const [activeTab, setActiveTab] = useState('platforms');
-  const [googleProperties, setGoogleProperties] = useState<any[]>([]);
+  const [googleProperties, setGoogleProperties] = useState<GoogleProperty[]>([]);
 
   const fetchGoogleProperties = async () => {
     try {
@@ -56,7 +63,6 @@ export default function SetupPage() {
       icon: BarChart3,
       color: 'bg-blue-500',
       connected: false,
-      status: 'disconnected',
     },
     {
       id: 'facebook',
@@ -65,7 +71,6 @@ export default function SetupPage() {
       icon: Users,
       color: 'bg-blue-600',
       connected: false,
-      status: 'disconnected',
     },
     {
       id: 'twitter',
@@ -74,7 +79,6 @@ export default function SetupPage() {
       icon: Users,
       color: 'bg-black',
       connected: false,
-      status: 'disconnected',
     },
   ];
 
@@ -128,7 +132,7 @@ export default function SetupPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {googleProperties.map((property: any) => (
+                    {googleProperties.map((property) => (
                       <div key={property.propertyId} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium">{property.displayName}</p>

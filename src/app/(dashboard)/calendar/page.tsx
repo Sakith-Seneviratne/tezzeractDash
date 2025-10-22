@@ -116,8 +116,8 @@ export default function CalendarPage() {
       } else {
         // Add new content to database
         const newContentData = {
-          organization_id: orgData?.id,
-          ...content
+          ...content,
+          organization_id: content.organization_id || orgData?.id
         };
         
         try {

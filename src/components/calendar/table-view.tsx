@@ -89,14 +89,14 @@ export function TableView({
       let bValue: unknown = b[sortField];
 
       if (sortField === 'posting_date') {
-        aValue = new Date(aValue);
-        bValue = new Date(bValue);
+        aValue = new Date(String(aValue));
+        bValue = new Date(String(bValue));
       }
 
       if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
+        return (aValue as Date | string) > (bValue as Date | string) ? 1 : -1;
       } else {
-        return aValue < bValue ? 1 : -1;
+        return (aValue as Date | string) < (bValue as Date | string) ? 1 : -1;
       }
     });
 

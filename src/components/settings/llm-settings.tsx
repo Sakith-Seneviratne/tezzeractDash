@@ -77,23 +77,28 @@ export function LLMSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const { selectedOrganization } = useAuth();
+  const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    if (selectedOrganization) {
-      fetchSettings();
+    // Load organization from localStorage
+    const orgData = localStorage.getItem('organization_data');
+    if (orgData) {
+      const org = JSON.parse(orgData);
+      setSelectedOrganization(org.id);
+      fetchSettings(org.id);
     }
-  }, [selectedOrganization]);
+  }, []);
 
-  const fetchSettings = async () => {
-    if (!selectedOrganization) return;
+  const fetchSettings = async (orgId?: string) => {
+    const organizationId = orgId || selectedOrganization;
+    if (!organizationId || !supabase) return;
 
     try {
       const { data, error } = await supabase
         .from('organizations')
         .select('settings')
-        .eq('id', selectedOrganization.id)
+        .eq('id', organizationId)
         .single();
 
       if (error) {
@@ -110,7 +115,7 @@ export function LLMSettings() {
   };
 
   const handleSave = async () => {
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     setSaving(true);
     try {
@@ -121,7 +126,7 @@ export function LLMSettings() {
             llm: settings,
           },
         })
-        .eq('id', selectedOrganization.id);
+        .eq('id', selectedOrganization);
 
       if (error) {
         console.error('Error saving LLM settings:', error);

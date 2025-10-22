@@ -21,6 +21,7 @@ interface ContentSuggestion {
 }
 
 interface OrganizationData {
+  id?: string;
   name: string;
   type: string;
   products_services: string;
@@ -178,7 +179,7 @@ export function ContentSuggestions() {
       console.log('Content suggestions generated successfully!');
       
       // Save to database if organization_id is available
-      if (organizationData && (organizationData as any).id) {
+      if (organizationData?.id) {
         try {
           console.log('Saving suggestions to database...');
           const saveResponse = await fetch('/api/suggestions/save', {
@@ -188,7 +189,7 @@ export function ContentSuggestions() {
             },
             body: JSON.stringify({
               suggestions: data.suggestions,
-              organization_id: (organizationData as any).id,
+              organization_id: organizationData.id,
             }),
           });
 

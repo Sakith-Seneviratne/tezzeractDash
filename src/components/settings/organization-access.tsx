@@ -36,8 +36,19 @@ export function OrganizationAccess() {
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
   const [loading, setLoading] = useState(false);
   const [inviting, setInviting] = useState(false);
-  const { selectedOrganization, user } = useAuth();
+  const [selectedOrganization, setSelectedOrganization] = useState<{id: string} | null>(null);
+  const [user, setUser] = useState<{id: string, email?: string} | null>(null);
   const supabase = createClient();
+  
+  useEffect(() => {
+    const orgData = localStorage.getItem('organization_data');
+    if (orgData) {
+      setSelectedOrganization(JSON.parse(orgData));
+    }
+    if (supabase) {
+      supabase.auth.getUser().then(({data}) => setUser(data.user));
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedOrganization) {
@@ -46,7 +57,7 @@ export function OrganizationAccess() {
   }, [selectedOrganization]);
 
   const fetchMembers = async () => {
-    if (!selectedOrganization) return;
+    if (!selectedOrganization || !supabase) return;
 
     setLoading(true);
     try {
@@ -74,7 +85,7 @@ export function OrganizationAccess() {
 
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrganization || !inviteEmail) return;
+    if (!selectedOrganization || !inviteEmail || !supabase) return;
 
     setInviting(true);
     try {
@@ -117,6 +128,7 @@ export function OrganizationAccess() {
 
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('Are you sure you want to remove this member?')) return;
+    if (!supabase) return;
 
     try {
       const { error } = await supabase
@@ -136,6 +148,8 @@ export function OrganizationAccess() {
   };
 
   const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member') => {
+    if (!supabase) return;
+    
     try {
       const { error } = await supabase
         .from('organization_members')

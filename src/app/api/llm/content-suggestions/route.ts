@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     let earliestStart: string | null = null;
     let latestEnd: string | null = null;
     
-    objectives.forEach(obj => {
+    objectives.forEach((obj: Objective) => {
       if (obj.start_date) {
         if (!earliestStart || obj.start_date < earliestStart) {
           earliestStart = obj.start_date;
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     console.log('- Today:', todayStr);
     console.log('- Earliest start:', earliestStart);
     console.log('- Latest end:', latestEnd);
-    console.log('- Objectives with dates:', objectives.filter(o => o.start_date || o.end_date));
+    console.log('- Objectives with dates:', objectives.filter((o: Objective) => o.start_date || o.end_date));
 
     // Create comprehensive prompt for Gemini
     const prompt = `You are a social media content strategist and copywriter. Generate 3 high-quality, personalized content suggestions for a business.
@@ -144,7 +144,7 @@ BUSINESS INFORMATION:
 ${organizationData.website_url ? `- Website: ${organizationData.website_url}` : ''}
 
 BUSINESS OBJECTIVES:
-${objectives.map(obj => {
+${objectives.map((obj: Objective) => {
   const dateRange = obj.start_date && obj.end_date ? ` [${obj.start_date} to ${obj.end_date}]` : '';
   return `- ${obj.type.replace('_', ' ').toUpperCase()}: ${obj.description}${dateRange} (Target: ${obj.target_impressions || 0} impressions, ${obj.target_reach || 0} reach)`;
 }).join('\n')}
@@ -287,11 +287,13 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
 
   } catch (error) {
     console.error('Error generating content suggestions:', error);
-    console.error('Error details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack
-    });
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+    }
     
     // Fallback to hardcoded suggestions if Gemini fails
     const fallbackSuggestions = [
@@ -314,9 +316,9 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
       success: true,
       suggestions: fallbackSuggestions,
       generated_by: 'fallback',
-      error: `Gemini API failed: ${error.message}`,
+      error: `Gemini API failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       debug_info: {
-        error_type: error.name,
+        error_type: error instanceof Error ? error.name : 'Unknown',
         api_key_configured: !!process.env.GEMINI_API_KEY,
         api_key_length: process.env.GEMINI_API_KEY?.length || 0
       }

@@ -124,12 +124,15 @@ export async function GET(request: NextRequest) {
     const rows = reportData.rows || [];
     
     rows.forEach((row: Record<string, unknown>) => {
-      totalSessions += parseInt(row.metricValues[0]?.value || '0');
-      totalUsers += parseInt(row.metricValues[1]?.value || '0');
-      totalPageViews += parseInt(row.metricValues[2]?.value || '0');
-      avgEngagementRate += parseFloat(row.metricValues[3]?.value || '0');
-      totalConversions += parseInt(row.metricValues[4]?.value || '0');
-      totalEvents += parseInt(row.metricValues[5]?.value || '0');
+      const metricValues = row.metricValues as Array<{ value?: string }> | undefined;
+      if (!metricValues) return;
+      
+      totalSessions += parseInt(metricValues[0]?.value || '0');
+      totalUsers += parseInt(metricValues[1]?.value || '0');
+      totalPageViews += parseInt(metricValues[2]?.value || '0');
+      avgEngagementRate += parseFloat(metricValues[3]?.value || '0');
+      totalConversions += parseInt(metricValues[4]?.value || '0');
+      totalEvents += parseInt(metricValues[5]?.value || '0');
     });
 
     avgEngagementRate = rows.length > 0 ? avgEngagementRate / rows.length : 0;

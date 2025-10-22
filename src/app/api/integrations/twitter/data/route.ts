@@ -74,12 +74,14 @@ export async function GET(request: NextRequest) {
       const tweets = tweetsData.data || [];
 
       tweets.forEach((tweet: Record<string, unknown>) => {
-        const tweetMetrics = tweet.public_metrics;
-        tweetMetrics.totalImpressions += tweetMetrics.impression_count || 0;
-        tweetMetrics.totalEngagement += (tweetMetrics.like_count || 0) + (tweetMetrics.retweet_count || 0) + (tweetMetrics.reply_count || 0);
-        tweetMetrics.totalRetweets += tweetMetrics.retweet_count || 0;
-        tweetMetrics.totalLikes += tweetMetrics.like_count || 0;
-        tweetMetrics.totalReplies += tweetMetrics.reply_count || 0;
+        const publicMetrics = tweet.public_metrics as { impression_count?: number; like_count?: number; retweet_count?: number; reply_count?: number } | undefined;
+        if (publicMetrics) {
+          tweetMetrics.totalImpressions += publicMetrics.impression_count || 0;
+          tweetMetrics.totalEngagement += (publicMetrics.like_count || 0) + (publicMetrics.retweet_count || 0) + (publicMetrics.reply_count || 0);
+          tweetMetrics.totalRetweets += publicMetrics.retweet_count || 0;
+          tweetMetrics.totalLikes += publicMetrics.like_count || 0;
+          tweetMetrics.totalReplies += publicMetrics.reply_count || 0;
+        }
         tweetMetrics.tweetCount += 1;
       });
     }

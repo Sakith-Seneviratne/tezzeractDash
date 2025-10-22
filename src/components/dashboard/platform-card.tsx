@@ -67,7 +67,7 @@ const platformConfig = {
 };
 
 export function PlatformCard({ platform, metrics, onViewDetails }: PlatformCardProps) {
-  const config = platformConfig[platform] || platformConfig.facebook;
+  const config = platformConfig[platform as keyof typeof platformConfig] || platformConfig.facebook;
   const Icon = config.icon;
 
   const getTrendColor = () => {

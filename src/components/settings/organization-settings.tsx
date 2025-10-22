@@ -49,8 +49,16 @@ export function OrganizationSettings() {
     },
   });
   const [saving, setSaving] = useState(false);
-  const { selectedOrganization } = useAuth();
+  const [selectedOrganization, setSelectedOrganization] = useState<{id: string; name?: string; slug?: string; settings?: any} | null>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    const orgData = localStorage.getItem('organization_data');
+    if (orgData) {
+      const org = JSON.parse(orgData);
+      setSelectedOrganization(org);
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedOrganization) {

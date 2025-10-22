@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Get the integration details
     const { data: integration, error: fetchError } = await supabase
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Create the integration instance
     const integrationInstance = IntegrationFactory.createIntegration(
-      integration.platform_type as string,
+      integration.platform_type as 'facebook' | 'twitter' | 'google_analytics',
       integration.organization_id,
       integration.config
     );

@@ -126,7 +126,7 @@ export function OrganizationForm() {
       
     } catch (err) {
       console.error('Unexpected error:', err);
-      setError(`An unexpected error occurred: ${err.message}`);
+      setError(`An unexpected error occurred: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }

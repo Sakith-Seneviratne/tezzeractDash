@@ -23,6 +23,12 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    if (!supabase) {
+      setError('Authentication service is not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -40,8 +46,8 @@ export default function LoginPage() {
         router.push('/dashboard');
         router.refresh();
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during login');
     } finally {
       setLoading(false);
     }
@@ -50,6 +56,12 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
+
+    if (!supabase) {
+      setError('Authentication service is not configured');
+      setLoading(false);
+      return;
+    }
 
     try {
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -62,8 +74,8 @@ export default function LoginPage() {
       if (signInError) {
         setError(signInError.message);
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during Google login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during Google login');
     } finally {
       setLoading(false);
     }
@@ -182,7 +194,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center text-muted-foreground">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" className="text-primary hover:underline font-medium">
               Sign up
             </Link>

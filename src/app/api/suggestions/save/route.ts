@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+interface Suggestion {
+  posting_date?: string;
+  postingDate?: string;
+  title: string;
+  platform: string;
+  content_type?: string;
+  contentType?: string;
+  objective: string;
+  content_pillar?: string;
+  contentPillar?: string;
+  description: string;
+  creative_guidance?: string;
+  creativeGuidance?: string;
+  caption?: string;
+  hashtags?: string[];
+  generated_by?: string;
+  id?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -30,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare suggestions for database insert
-    const suggestionsToInsert = suggestions.map((suggestion: any) => ({
+    const suggestionsToInsert = suggestions.map((suggestion: Suggestion) => ({
       organization_id,
       posting_date: suggestion.posting_date || suggestion.postingDate,
       title: suggestion.title,

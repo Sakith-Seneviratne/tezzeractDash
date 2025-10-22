@@ -36,6 +36,8 @@ export function IntegrationSettings() {
 
   const fetchIntegrations = async () => {
     setLoading(true);
+    if (!supabase) return;
+    
     try {
       const { data, error } = await supabase
         .from('data_streams')
@@ -85,6 +87,7 @@ export function IntegrationSettings() {
 
   const handleDisconnect = async (integrationId: string) => {
     if (!confirm('Are you sure you want to disconnect this integration?')) return;
+    if (!supabase) return;
 
     try {
       const { error } = await supabase

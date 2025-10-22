@@ -41,6 +41,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (!supabase) {
+      setError('Authentication service is not configured');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -77,8 +83,8 @@ export default function SignupPage() {
           }, 2000);
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during signup');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during signup');
     } finally {
       setLoading(false);
     }
@@ -87,6 +93,12 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     setLoading(true);
     setError('');
+
+    if (!supabase) {
+      setError('Authentication service is not configured');
+      setLoading(false);
+      return;
+    }
 
     try {
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -99,8 +111,8 @@ export default function SignupPage() {
       if (signInError) {
         setError(signInError.message);
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during Google signup');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during Google signup');
     } finally {
       setLoading(false);
     }

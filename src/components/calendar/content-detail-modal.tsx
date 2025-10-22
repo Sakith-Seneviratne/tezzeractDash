@@ -276,20 +276,22 @@ export function ContentDetailModal({
                 </Button>
               </div>
               <div className="space-y-2">
-                {(formData.attachments || []).map((attachment: Record<string, unknown>, index) => (
+                {(formData.attachments || []).map((attachment: Record<string, unknown>, index) => {
+                  const typedAttachment = attachment as unknown as Attachment;
+                  return (
                   <div key={index} className="flex items-center space-x-2 p-2 border rounded">
                     <Input
                       placeholder="Attachment name"
-                      value={String((attachment as Attachment).name || '')}
+                      value={String(typedAttachment.name || '')}
                       onChange={(e) => updateAttachment(index, 'name', e.target.value)}
                     />
                     <Input
                       placeholder="URL"
-                      value={String((attachment as Attachment).url || '')}
+                      value={String(typedAttachment.url || '')}
                       onChange={(e) => updateAttachment(index, 'url', e.target.value)}
                     />
                     <select
-                      value={String((attachment as Attachment).type || 'image')}
+                      value={String(typedAttachment.type || 'image')}
                       onChange={(e) => updateAttachment(index, 'type', e.target.value)}
                       className="p-2 border-2 border-black dark:border-white rounded bg-white dark:bg-black text-black dark:text-white"
                     >
@@ -306,7 +308,8 @@ export function ContentDetailModal({
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
