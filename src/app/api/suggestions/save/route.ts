@@ -48,6 +48,34 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
+    // Verify that the organization exists in the database
+    console.log('Verifying organization exists:', organization_id);
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', organization_id)
+      .single();
+
+    if (orgError || !orgData) {
+      console.error('Organization not found in database:', {
+        organization_id,
+        error: orgError?.message,
+        hint: 'The organization_id from localStorage does not exist in the organizations table'
+      });
+      
+      return NextResponse.json({ 
+        success: true, 
+        saved_count: 0,
+        message: 'Organization not found in database. Please sync your organization first.',
+        db_error: 'Organization not found',
+        db_error_details: `Organization ID ${organization_id} does not exist in the organizations table`,
+        db_error_hint: 'Go to Setup > Organization to sync your organization to the database',
+        needs_org_sync: true
+      }, { status: 200 });
+    }
+
+    console.log('✅ Organization verified:', orgData.id);
+
     // Prepare suggestions for database insert
     const suggestionsToInsert = suggestions.map((suggestion: Suggestion) => ({
       organization_id,

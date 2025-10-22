@@ -45,6 +45,56 @@ export function ContentSuggestions() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [orgSynced, setOrgSynced] = useState<boolean | null>(null);
+
+  // Check if organization is synced to database
+  const checkOrganizationSync = async (orgId: string) => {
+    try {
+      const response = await fetch('/api/suggestions/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suggestions: [],
+          organization_id: orgId,
+        }),
+      });
+      
+      const data = await response.json();
+      return !data.needs_org_sync;
+    } catch {
+      return false;
+    }
+  };
+
+  // Sync organization to database
+  const syncOrganizationToDatabase = async () => {
+    if (!organizationData) return;
+    
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization: organizationData })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setOrgSynced(true);
+        alert('✅ Organization synced to database successfully!');
+      } else {
+        setOrgSynced(false);
+        alert(`❌ Failed to sync organization: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      setOrgSynced(false);
+      alert('❌ Failed to sync organization to database');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Load organization data and objectives from localStorage
   useEffect(() => {
@@ -54,7 +104,13 @@ export function ContentSuggestions() {
 
     if (savedOrgData) {
       try {
-        setOrganizationData(JSON.parse(savedOrgData));
+        const orgData = JSON.parse(savedOrgData);
+        setOrganizationData(orgData);
+        
+        // Check if organization is synced
+        if (orgData.id) {
+          checkOrganizationSync(orgData.id).then(setOrgSynced);
+        }
       } catch (error) {
         console.error('Error parsing organization data:', error);
       }
@@ -106,40 +162,6 @@ export function ContentSuggestions() {
       posting_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 3 days from now
     }
   ];
-
-  const syncOrganizationToDatabase = async () => {
-    setSyncing(true);
-    try {
-      const orgData = localStorage.getItem('organization_data');
-      if (!orgData) {
-        alert('❌ No organization found! Please create one first.');
-        return;
-      }
-
-      const organization = JSON.parse(orgData);
-      console.log('Syncing organization to database...', organization);
-
-      const response = await fetch('/api/organization', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organization })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert('✅ Organization synced to database!\n\nYou can now generate suggestions.');
-        console.log('✅ Organization synced successfully!');
-      } else {
-        alert(`⚠️ Sync failed: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const generateContentSuggestions = async () => {
     setLoading(true);
@@ -200,9 +222,12 @@ export function ContentSuggestions() {
             // Check if actually saved or just returned success with 0 count
             if (saveData.saved_count === 0) {
               console.error('⚠️ Database save returned 0 items!');
-              if (saveData.db_error) {
+              if (saveData.needs_org_sync) {
+                console.error('Organization sync required!');
+                alert(`⚠️ Organization Not Synced!\n\n${saveData.message}\n\n💡 Solution: Go to Setup > Organization and click "Sync to Database"\n\nYour suggestions are still saved locally.`);
+              } else if (saveData.db_error) {
                 console.error('Database error:', saveData.db_error);
-                alert(`⚠️ Database Error: ${saveData.db_error}\n\nSuggestions saved to localStorage only.`);
+                alert(`⚠️ Database Error: ${saveData.db_error}\n\n${saveData.db_error_hint || 'Suggestions saved to localStorage only.'}`);
               } else if (saveData.message) {
                 console.warn('Message:', saveData.message);
                 alert(`⚠️ ${saveData.message}`);
@@ -388,6 +413,51 @@ export function ContentSuggestions() {
           Generate personalized content suggestions based on your organization and objectives
         </p>
       </div>
+
+      {/* Organization Sync Warning */}
+      {orgSynced === false && organizationData && (
+        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Organization Not Synced to Database
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                  <p>Your organization exists in localStorage but not in the database. Content suggestions won't be saved to the database until you sync.</p>
+                </div>
+                <div className="mt-4">
+                  <Button
+                    onClick={syncOrganizationToDatabase}
+                    disabled={syncing}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    {syncing ? 'Syncing...' : '🔄 Sync Organization to Database'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {orgSynced === true && (
+        <Card className="border-green-500 bg-green-50 dark:bg-green-950/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2 text-green-800 dark:text-green-200">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-medium">Organization synced to database ✓</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Organization Info */}
       {organizationData && (

@@ -18,6 +18,35 @@ interface Objective {
   end_date?: string;
 }
 
+// Helper function to retry API calls with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Check if it's a 503 error
+      if (error instanceof Error && error.message.includes('503')) {
+        const delay = baseDelay * Math.pow(2, i); // Exponential backoff
+        console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms due to 503 error`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        // For non-503 errors, throw immediately
+        throw error;
+      }
+    }
+  }
+  
+  throw lastError!;
+}
+
 // Function to scrape website content (simplified version)
 async function scrapeWebsiteContent(url: string): Promise<string> {
   try {
@@ -184,26 +213,28 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
     console.log('API Key (first 10 chars):', geminiApiKey.substring(0, 10) + '...');
     console.log('Prompt length:', prompt.length);
     
-    // Use REST API directly instead of SDK
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
+    // Use REST API directly with retry logic
+    const data = await retryWithBackoff(async () => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
           }]
-        }]
-      })
-    });
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
-    }
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      }
 
-    const data = await response.json();
+      return await response.json();
+    }, 3, 2000); // 3 retries, starting with 2 second delay
     console.log('Gemini API response received');
     console.log('Response structure:', Object.keys(data));
     
@@ -287,11 +318,19 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
 
   } catch (error) {
     console.error('Error generating content suggestions:', error);
+    
+    let errorMessage = 'Unknown error occurred';
+    let isRetryableError = false;
+    
     if (error instanceof Error) {
+      errorMessage = error.message;
+      isRetryableError = error.message.includes('503');
+      
       console.error('Error details:', {
         message: error.message,
         name: error.name,
-        stack: error.stack
+        stack: error.stack,
+        is_retryable: isRetryableError
       });
     }
     
@@ -316,9 +355,14 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
       success: true,
       suggestions: fallbackSuggestions,
       generated_by: 'fallback',
-      error: `Gemini API failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Gemini API failed: ${errorMessage}`,
+      retry_suggestion: isRetryableError 
+        ? 'The Gemini API is temporarily unavailable (503). This is usually temporary - try again in a few moments.'
+        : 'There was an error with the Gemini API. Using fallback suggestions.',
       debug_info: {
         error_type: error instanceof Error ? error.name : 'Unknown',
+        is_retryable: isRetryableError,
+        retries_attempted: 3,
         api_key_configured: !!process.env.GEMINI_API_KEY,
         api_key_length: process.env.GEMINI_API_KEY?.length || 0
       }
