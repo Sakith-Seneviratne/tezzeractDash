@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateSlug } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 // Simple select component
 const Select = ({ value, onChange, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
@@ -20,6 +21,19 @@ const Select = ({ value, onChange, children, ...props }: React.SelectHTMLAttribu
   </select>
 );
 
+interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+  products_services: string;
+  objectives: string;
+  website_url: string;
+  created_at: string;
+  updated_at: string;
+  settings?: Record<string, unknown>;
+}
+
 export function OrganizationForm() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -28,28 +42,134 @@ export function OrganizationForm() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [existingOrganization, setExistingOrganization] = useState<Record<string, unknown> | null>(null);
+  const [existingOrganization, setExistingOrganization] = useState<Organization | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
-  // Load existing organization data on component mount
+  // Fetch user's organizations from database
   useEffect(() => {
-    const savedOrgData = localStorage.getItem('organization_data');
-    if (savedOrgData) {
+    const fetchOrganizations = async () => {
+      if (!supabase) return;
+      
+      setLoadingOrgs(true);
       try {
-        const orgData = JSON.parse(savedOrgData);
-        setExistingOrganization(orgData);
-        setName(orgData.name);
-        setType(orgData.type);
-        setProductsServices(orgData.products_services);
-        setObjectives(orgData.objectives);
-        setWebsiteUrl(orgData.website_url);
-        setIsEditing(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('No user logged in');
+          return;
+        }
+
+        console.log('🔍 Fetching organizations for user:', user.id);
+
+        // Get organizations where user is a member
+        const { data: memberData, error: memberError } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id);
+
+        console.log('📋 Member data:', memberData);
+        console.log('❌ Member error:', memberError);
+
+        if (memberError) {
+          console.error('Error fetching organization members:', memberError);
+          console.log('Falling back to checking localStorage only');
+          setOrganizations([]);
+          setLoadingOrgs(false);
+          return;
+        }
+
+        if (!memberData || memberData.length === 0) {
+          console.log('⚠️ No organizations found for user - user needs to create one');
+          setOrganizations([]);
+          setLoadingOrgs(false);
+          return;
+        }
+
+        const orgIds = memberData.map(m => m.organization_id);
+        console.log('🆔 Organization IDs for user:', orgIds);
+
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('*')
+          .in('id', orgIds)
+          .order('created_at', { ascending: false });
+
+        console.log('🏢 Organizations fetched:', data);
+        console.log('❌ Organization fetch error:', error);
+
+        if (error) {
+          console.error('Error fetching organizations:', error);
+          return;
+        }
+
+        if (data) {
+          setOrganizations(data);
+          
+          // Check if there's one in localStorage and pre-select it
+          const savedOrgData = localStorage.getItem('organization_data');
+          if (savedOrgData) {
+            const orgData = JSON.parse(savedOrgData);
+            const foundOrg = data.find((org: Organization) => org.id === orgData.id);
+            if (foundOrg) {
+              setSelectedOrgId(foundOrg.id);
+              loadOrganization(foundOrg);
+            }
+          } else if (data.length > 0) {
+            // Auto-select the first organization if no localStorage data
+            setSelectedOrgId(data[0].id);
+            loadOrganization(data[0]);
+          }
+        }
       } catch (error) {
-        console.error('Error parsing saved organization data:', error);
+        console.error('Error:', error);
+      } finally {
+        setLoadingOrgs(false);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
+
+  // Load organization data into form
+  const loadOrganization = (org: Organization) => {
+    setExistingOrganization(org);
+    setName(org.name);
+    setType(org.type);
+    setProductsServices(org.products_services);
+    setObjectives(org.objectives);
+    setWebsiteUrl(org.website_url);
+    setIsEditing(true);
+    
+    // Save to localStorage as well
+    localStorage.setItem('organization_data', JSON.stringify(org));
+  };
+
+  // Handle organization selection from dropdown
+  const handleOrganizationSelect = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    
+    if (orgId === 'new') {
+      // Create new organization
+      setExistingOrganization(null);
+      setName('');
+      setType('');
+      setProductsServices('');
+      setObjectives('');
+      setWebsiteUrl('');
+      setIsEditing(false);
+    } else {
+      // Load selected organization
+      const org = organizations.find(o => o.id === orgId);
+      if (org) {
+        loadOrganization(org);
       }
     }
-  }, []);
+  };
 
   // Generate UUID
   const generateUUID = () => {
@@ -121,8 +241,21 @@ export function OrganizationForm() {
       setExistingOrganization(organizationData);
       setIsEditing(true);
       
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Refresh organizations list if saved to database
+      if (supabase) {
+        const { data } = await supabase
+          .from('organizations')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (data) {
+          setOrganizations(data);
+          setSelectedOrgId(organizationData.id);
+        }
+      }
+      
+      // Don't redirect - stay on the page to show the updated org
+      // router.push('/dashboard');
       
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -143,6 +276,61 @@ export function OrganizationForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Organization Selector */}
+        {organizations.length > 0 && (
+          <div className="mb-8 p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border-2 border-primary/30 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <Label htmlFor="org-select" className="text-lg font-bold text-foreground">
+                  Your Organizations
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Select an organization to edit or create a new one
+                </p>
+              </div>
+            </div>
+            
+            <select
+              id="org-select"
+              value={selectedOrgId}
+              onChange={(e) => handleOrganizationSelect(e.target.value)}
+              disabled={loadingOrgs}
+              className="w-full h-12 px-4 rounded-lg border-2 border-primary/30 bg-background text-foreground font-medium shadow-sm hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="" className="text-muted-foreground">Choose an organization...</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id} className="py-2">
+                  🏢 {org.name} • {org.type}
+                </option>
+              ))}
+              <option value="new" className="font-bold py-2">
+                ➕ Create New Organization
+              </option>
+            </select>
+            
+            {loadingOrgs && (
+              <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Loading your organizations...</span>
+              </div>
+            )}
+            
+            {organizations.length > 0 && !loadingOrgs && (
+              <p className="text-xs text-muted-foreground mt-3">
+                📊 {organizations.length} organization{organizations.length !== 1 ? 's' : ''} available
+              </p>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">

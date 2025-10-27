@@ -19,7 +19,6 @@ import {
 import { PlatformConnectionCard } from '@/components/setup/platform-connection-card';
 import { OrganizationForm } from '@/components/organization-form';
 import { ObjectivesManager } from '@/components/setup/objectives-manager';
-import { ContentSuggestions } from '@/components/setup/content-suggestions';
 
 interface GoogleProperty {
   propertyId: string;
@@ -52,7 +51,6 @@ export default function SetupPage() {
     { id: 'platforms', label: 'Platform Connections', icon: BarChart3 },
     { id: 'organization', label: 'Organization', icon: Building2 },
     { id: 'objectives', label: 'Objectives', icon: Target },
-    { id: 'suggestions', label: 'Content Suggestions', icon: Lightbulb },
   ];
 
   const platforms = [
@@ -173,19 +171,6 @@ export default function SetupPage() {
               </p>
             </div>
             <ObjectivesManager />
-          </div>
-        );
-
-      case 'suggestions':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Content Suggestions</h2>
-              <p className="text-gray-600">
-                Get personalized content suggestions based on your organization and objectives.
-              </p>
-            </div>
-            <ContentSuggestions />
           </div>
         );
 

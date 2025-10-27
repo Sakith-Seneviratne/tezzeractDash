@@ -14,9 +14,11 @@ import {
   Save,
   Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  LogOut
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface UserSettings {
   full_name: string;
@@ -48,6 +50,7 @@ export function UserSettings() {
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     // Initialize with default settings since we don't have user auth
@@ -58,6 +61,27 @@ export function UserSettings() {
       avatar_url: '',
     }));
   }, []);
+
+  const handleLogout = async () => {
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    try {
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Sign out from Supabase
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Force redirect even if there's an error
+      window.location.href = '/login';
+    }
+  };
 
   const handleSave = async () => {
     if (!supabase) return;
@@ -319,7 +343,15 @@ export function UserSettings() {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-between items-center pt-4 border-t">
+          <Button 
+            onClick={handleLogout} 
+            variant="outline"
+            className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}

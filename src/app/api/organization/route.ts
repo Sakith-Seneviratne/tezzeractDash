@@ -24,6 +24,33 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'User not authenticated'
+      }, { status: 401 });
+    }
+
+    // Ensure user exists in users table (create if doesn't exist)
+    const { error: userError } = await supabase
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+        avatar_url: user.user_metadata?.avatar_url || null
+      }, {
+        onConflict: 'id'
+      });
+
+    if (userError) {
+      console.error('Error ensuring user exists:', userError);
+      // Continue anyway - might work without this
+    }
+
     // Check if organization already exists
     const { data: existingOrg } = await supabase
       .from('organizations')
@@ -63,6 +90,24 @@ export async function POST(request: NextRequest) {
           settings: organization.settings || {}
         })
         .select();
+      
+      // Add creator as organization member (owner)
+      if (result.data && result.data.length > 0) {
+        const memberResult = await supabase
+          .from('organization_members')
+          .insert({
+            organization_id: organization.id,
+            user_id: user.id,
+            role: 'owner'
+          });
+        
+        if (memberResult.error) {
+          console.error('Error adding user as organization member:', memberResult.error);
+          // Continue anyway - organization was created
+        } else {
+          console.log('User added as organization owner');
+        }
+      }
     }
 
     const { data, error } = result;

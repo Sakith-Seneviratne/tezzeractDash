@@ -234,7 +234,7 @@ Return ONLY a valid JSON array with 3 objects, each containing these exact field
       }
 
       return await response.json();
-    }, 3, 2000); // 3 retries, starting with 2 second delay
+    }, 3, 2000); // 3 retries, 2 second initial delay
     console.log('Gemini API response received');
     console.log('Response structure:', Object.keys(data));
     

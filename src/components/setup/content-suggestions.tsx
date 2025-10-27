@@ -407,57 +407,6 @@ export function ContentSuggestions() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">AI Content Suggestions</h2>
-        <p className="text-muted-foreground">
-          Generate personalized content suggestions based on your organization and objectives
-        </p>
-      </div>
-
-      {/* Organization Sync Warning */}
-      {orgSynced === false && organizationData && (
-        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  Organization Not Synced to Database
-                </h3>
-                <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                  <p>Your organization exists in localStorage but not in the database. Content suggestions won't be saved to the database until you sync.</p>
-                </div>
-                <div className="mt-4">
-                  <Button
-                    onClick={syncOrganizationToDatabase}
-                    disabled={syncing}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                  >
-                    {syncing ? 'Syncing...' : '🔄 Sync Organization to Database'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {orgSynced === true && (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 text-green-800 dark:text-green-200">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-sm font-medium">Organization synced to database ✓</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Organization Info */}
       {organizationData && (

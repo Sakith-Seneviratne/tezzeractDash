@@ -81,15 +81,21 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     try {
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Sign out from Supabase
       const supabase = createClient();
       if (supabase) {
         await supabase.auth.signOut();
       }
+      
+      // Redirect to login page
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error during logout:', error);
-    } finally {
-      router.push('/login');
-      router.refresh();
+      // Force redirect even if there's an error
+      window.location.href = '/login';
     }
   };
 

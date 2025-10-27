@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Lightbulb, RefreshCw, Plus, Edit, Calendar, Save, X } from 'lucide-react';
-import { useLLM } from '@/hooks/use-llm';
-import { ContentSuggestion } from '@/lib/llm/types';
+import { ContentSuggestions } from '@/components/setup/content-suggestions';
 
 export default function SuggestionsPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">AI Content Suggestions</h1>
+        <p className="text-muted-foreground mt-2">
+          Generate personalized content suggestions based on your organization and objectives
+        </p>
+      </div>
+      <ContentSuggestions />
+    </div>
+  );
+}
+
+/* Old implementation - replaced with ContentSuggestions component
+export default function OldSuggestionsPage() {
   const [suggestions, setSuggestions] = useState<ContentSuggestion[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<ContentSuggestion | null>(null);
@@ -400,3 +407,4 @@ export default function SuggestionsPage() {
     </div>
   );
 }
+*/
